@@ -1,0 +1,25 @@
+<resources>
+
+    <style name="AppTheme" parent="Theme.AppCompat.Light.NoActionBar">
+        <item name="android:windowContentTransitions">true</item>
+        <item name="colorPrimary">@color/colorPrimary</item>
+        <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
+        <item name="colorAccent">@color/colorAccent</item>
+        <item name="android:textViewStyle">@style/UbuntuFont</item>
+        <item name="android:buttonStyle">@style/UbuntuFontButton</item>
+    </style>
+
+    <style name="HolyBlack" parent="Theme.AppCompat.Light.NoActionBar">
+        <item name="colorPrimary">#000000</item>
+        <item name="colorPrimaryDark">#000000</item>
+    </style>
+
+    <style name="UbuntuFont" parent="android:Widget.TextView">
+        <item name="android:fontFamily">@font/ubuntu</item>
+    </style>
+
+    <style name="UbuntuFontButton" parent="android:Widget.Holo.Button">
+        <item name="android:fontFamily">@font/ubuntu_bold</item>
+    </style>
+
+</resources>
