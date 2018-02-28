@@ -18,6 +18,6 @@ public class PreviewImage extends AppCompatActivity {
         setTheme(R.style.HolyBlack);
         setContentView(R.layout.activity_preview_image);
         imageView = findViewById(R.id.photo_view);
-        imageView.setImageDrawable((Drawable) LocalStore.getObjectFromCache("previewImage"));
+        imageView.setImageDrawable((Drawable) LocalStore.getObject("previewImage"));
     }
 }

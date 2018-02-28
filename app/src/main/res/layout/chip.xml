@@ -6,17 +6,20 @@
     android:layout_width="wrap_content"
     android:layout_height="wrap_content">
     <ImageView
+        android:id="@+id/chipImage"
         android:layout_margin="2dp"
         android:src="@drawable/ic_logo_colored"
         android:layout_width="30dp"
         android:layout_height="30dp" />
     <TextView
-
+        android:maxLength="20"
+        android:maxLines="1"
+        android:id="@+id/chipText"
         android:drawablePadding="5dp"
         android:paddingRight="8dp"
         android:paddingBottom="5dp"
-        android:textSize="20dp"
-        android:text=" androidrajpoot@demo.com"
+        android:textSize="14dp"
+        android:text=" dock@gmail.com"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content" />
 </LinearLayout>

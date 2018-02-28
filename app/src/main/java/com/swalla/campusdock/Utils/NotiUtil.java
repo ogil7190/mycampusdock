@@ -140,10 +140,8 @@ public class NotiUtil {
      * Downloading push notification image before displaying it in
      * the notification tray
      */
-    public Bitmap getBitmapFromURL(String strURL) {
-        String base  = "http://www.figr.in/mgiep/public_html/uploads/";
-        String imgUrl = base + strURL;
-        Log.d("App","This is image url : " + imgUrl);
+    public static Bitmap getBitmapFromURL(String strURL) {
+        String imgUrl = Config.BASE_URL + strURL;
         try {
             URL url = new URL(imgUrl);
             HttpURLConnection connection = (HttpURLConnection) url.openConnection();

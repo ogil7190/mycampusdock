@@ -46,6 +46,9 @@ public class Event implements Serializable {
     @ColumnInfo(name = "banner")
     private int banner = R.mipmap.test_poster; // banner in case of no image found!
 
+    @ColumnInfo(name = "enrolled")
+    private boolean enrolled;
+
     public Event(){}
 
     public String getCreated_by() {
@@ -65,6 +68,15 @@ public class Event implements Serializable {
         this.category = category;
         this.url = url;
         this.created_by = created_by;
+    }
+
+    public void setEnrolled(boolean enrolled) {
+        this.enrolled = enrolled;
+    }
+
+    public boolean isEnrolled() {
+
+        return enrolled;
     }
 
     public int getBanner() {

@@ -23,7 +23,10 @@ public class Config {
 
     public static final String TYPE_BULLETIN = "bulletin";
     public static final String TYPE_EVENT = "event";
+    public static final String TYPE_VERFIFICATION = "verification";
 
     public static final String TYPE_IMPLICIT = "implicit";
     public static final String TYPE_EXPLICIT = "explicit";
+
+    public static final String BASE_URL = "http://www.figr.in/mgiep/public_html/uploads/" ;
 }

@@ -12,8 +12,11 @@ import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
 
+import com.bumptech.glide.Glide;
 import com.swalla.campusdock.Classes.Event;
 import com.swalla.campusdock.R;
+import com.swalla.campusdock.Utils.Config;
+import com.swalla.campusdock.Utils.NotiUtil;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -31,6 +34,7 @@ public class EventAdapter extends RecyclerView.Adapter<EventAdapter.EventViewHol
     public class EventViewHolder extends RecyclerView.ViewHolder {
         private TextView title, date, organizer, category;
         private ImageView banner;
+        private TextView chipText;
 
         public EventViewHolder(View view) {
             super(view);
@@ -39,6 +43,7 @@ public class EventAdapter extends RecyclerView.Adapter<EventAdapter.EventViewHol
             organizer=  view.findViewById(R.id.card_organizer);
             banner = view.findViewById(R.id.card_image);
             category = view.findViewById(R.id.card_category);
+            chipText = view.findViewById(R.id.chipText);
         }
     }
 
@@ -61,19 +66,19 @@ public class EventAdapter extends RecyclerView.Adapter<EventAdapter.EventViewHol
         holder.date.setText(currentEvent.getDate());
         holder.organizer.setText(currentEvent.getOrganizer());
         holder.category.setText(currentEvent.getCategory());
+        holder.chipText.setText(currentEvent.getCreated_by());
+
         if(currentEvent.getUrl() == null) {
             holder.banner.setImageResource(currentEvent.getBanner());
-            Log.d("App", "No URL Found!");
         }
         else {
-            try {
-                File folder = new File(Environment.getExternalStorageDirectory() + File.separator + "CampusDock");
-                File f = new File(folder, currentEvent.getUrl());
-                Bitmap b = BitmapFactory.decodeStream(new FileInputStream(f));
-                holder.banner.setImageBitmap(b);
-            } catch (Exception e) {
-                e.printStackTrace();
+            File folder = new File(Environment.getExternalStorageDirectory() + File.separator + "CampusDock");
+            File f = new File(folder, currentEvent.getUrl());
+            if(f.exists())
+                Glide.with(mContext).load(f).into(holder.banner);
+            else{
                 holder.banner.setImageResource(currentEvent.getBanner());
+                NotiUtil.getBitmapFromURL(currentEvent.getUrl());
             }
         }
     }

@@ -18,6 +18,8 @@ import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.EditText;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.swalla.campusdock.Activities.EventActivity;
@@ -109,14 +111,14 @@ public class HomeFragment extends Fragment {
         Intent intent = new Intent(getActivity(), EventActivity.class);
         intent.putExtra(Config.TYPE_EVENT, event);
         if(startingEvent == null) {
-            ActivityOptionsCompat options = ActivityOptionsCompat.
-                    makeSceneTransitionAnimation(getActivity(), view, ViewCompat.getTransitionName(view));
+            ActivityOptionsCompat options = ActivityOptionsCompat.makeSceneTransitionAnimation(getActivity(), view, ViewCompat.getTransitionName(view));
             startActivity(intent, options.toBundle());
         } else {
             startingEvent = null;
             startActivity(intent);
         }
     }
+
 
     @Override
     public void onDestroy() {

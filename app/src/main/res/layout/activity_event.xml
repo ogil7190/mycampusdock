@@ -6,7 +6,6 @@
 
     <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
         xmlns:card_view="http://schemas.android.com/apk/res-auto"
-        xmlns:app="http://schemas.android.com/apk/res-auto"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:transitionName="ogil"
@@ -96,7 +95,8 @@
                     android:textSize="14dp"
                     android:textStyle="bold" />
 
-                <View
+                <include
+                    layout="@layout/chip"
                     android:layout_marginLeft="5dp"
                     android:layout_marginTop="5dp"
                     android:layout_marginBottom="10dp"

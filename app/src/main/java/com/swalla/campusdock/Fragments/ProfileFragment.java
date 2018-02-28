@@ -3,6 +3,8 @@ package com.swalla.campusdock.Fragments;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.os.Environment;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -18,6 +20,8 @@ import com.swalla.campusdock.Utils.Config;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+
+import java.io.File;
 
 import static android.content.Context.MODE_PRIVATE;
 import static com.swalla.campusdock.Utils.Config.PREF_USER_NAME;
@@ -77,6 +81,8 @@ public class ProfileFragment extends android.support.v4.app.Fragment {
                 db.getEventDao().nukeTable();
                 db.getBulletinDao().nukeTable();
                 pref.edit().clear().apply();
+                File folder = new File(Environment.getExternalStorageDirectory() + File.separator + "CampusDock");
+                folder.delete();
                 startActivity(new Intent(getActivity(), Registration.class));
                 getActivity().finish();
             }

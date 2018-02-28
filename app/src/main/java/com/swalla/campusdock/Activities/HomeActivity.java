@@ -139,7 +139,6 @@ public class HomeActivity extends AppCompatActivity {
         navigation = findViewById(R.id.navigation);
         navigation.setOnNavigationItemSelectedListener(mOnNavigationItemSelectedListener);
         replaceFragment();
-        FirebaseMessaging.getInstance().subscribeToTopic("global");
     }
 
     @Override

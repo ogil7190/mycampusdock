@@ -22,4 +22,9 @@
         <item name="android:fontFamily">@font/ubuntu_bold</item>
     </style>
 
+    <style name="PinDialog" parent="android:Theme.Dialog">
+        <item name="android:windowIsTranslucent">true</item>
+        <item name="android:windowBackground">@android:color/transparent</item>
+    </style>
+
 </resources>

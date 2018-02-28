@@ -39,6 +39,7 @@ import static com.swalla.campusdock.Utils.Config.PREF_USER_PHONE;
 import static com.swalla.campusdock.Utils.Config.PREF_USER_ROLL;
 import static com.swalla.campusdock.Utils.Config.PREF_USER_SUBSCRIPTIONS;
 import static com.swalla.campusdock.Utils.Config.TYPE_EVENT;
+import static com.swalla.campusdock.Utils.Config.TYPE_VERFIFICATION;
 
 
 /**
@@ -55,7 +56,7 @@ public class CustomFirebaseMessagingService extends FirebaseMessagingService {
     @Override
     public void onMessageReceived(RemoteMessage remoteMessage) {
         Log.e(TAG, "From: " + remoteMessage.getFrom());
-
+        pref = getApplicationContext().getSharedPreferences(Config.PREF_NAME, MODE_PRIVATE);
         if (remoteMessage == null) return;
 
         if (remoteMessage.getNotification() != null) {
@@ -93,49 +94,44 @@ public class CustomFirebaseMessagingService extends FirebaseMessagingService {
         Log.e(TAG, "pushed json: " + obj.toString());
 
         JSONObject data = obj.getJSONObject("content");
-
-        final String title = data.getString("title");
-        final String message = data.getString("description");
-        final String imageUrl = data.getString("url");
-        final String timestamp = data.getString("timestamp");
         final JSONObject payload = new JSONObject(data.getString("payload"));
-
-        Log.e(TAG, "title: " + title);
-        Log.e(TAG, "message: " + message);
-        Log.e(TAG, "payload: " + payload.toString());
-        Log.e(TAG, "imageUrl: " + imageUrl);
-        Log.e(TAG, "timestamp: " + timestamp);
-
-        //payload is a json which can contain JSON data about event.
         // {"type":"event", "name":"Demo Event", "description":"This is the test description", "date":"JAN 21", "organizer":"FCS", "category":"Demo" }
 
         switch (payload.getString("type")){
             case TYPE_EVENT :
-                accountReach(payload.getString("event_id"));
-                DockDB.getIntsance(getApplicationContext()).getEventDao().insert(new Event(payload.getString("event_id"), payload.getString("name"), payload.getString("description").replace("\r\n", "<br>"), payload.getString("date"), payload.getString("organizer"), payload.getString("category"), payload.getString("url"), payload.getString("created_by")));
-                if (!NotiUtil.isAppIsInBackground(getApplicationContext())) {
-                    NotiUtil notificationUtils = new NotiUtil(getApplicationContext());
-                    notificationUtils.getBitmapFromURL(imageUrl);
+                final String title = data.getString("title");
+                final String message = data.getString("description");
+                final String imageUrl = data.getString("url");
+                final String timestamp = data.getString("timestamp");
 
-                    Intent pushNotification = new Intent(Config.PUSH_NOTI);
-                    pushNotification.putExtra(TYPE_EVENT, payload.toString());
-                    LocalBroadcastManager.getInstance(this).sendBroadcast(pushNotification);
+                Log.e(TAG, "title: " + title);
+                Log.e(TAG, "message: " + message);
+                Log.e(TAG, "payload: " + payload.toString());
+                Log.e(TAG, "imageUrl: " + imageUrl);
+                Log.e(TAG, "timestamp: " + timestamp);
 
-                }
-                else {
-                    Intent resultIntent = new Intent(getApplicationContext(), HomeActivity.class);
-                    resultIntent.setAction(Config.PUSH_NOTI);
-                    resultIntent.putExtra(TYPE_EVENT, payload.toString());
-                    resultIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK |Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                if(pref.getBoolean(PREF_USER_IS_LOGGED_IN, false)) {
+                    accountReach(payload.getString("event_id"));
+                    DockDB.getIntsance(getApplicationContext()).getEventDao().insert(new Event(payload.getString("event_id"), payload.getString("name"), payload.getString("description").replace("\r\n", "<br>"), payload.getString("date"), payload.getString("organizer"), payload.getString("category"), payload.getString("url"), payload.getString("created_by")));
+                    if (!NotiUtil.isAppIsInBackground(getApplicationContext())) {
+                        NotiUtil notificationUtils = new NotiUtil(getApplicationContext());
+                        notificationUtils.getBitmapFromURL(imageUrl);
+                    } else {
+                        Intent resultIntent = new Intent(getApplicationContext(), HomeActivity.class);
+                        resultIntent.setAction(Config.PUSH_NOTI);
+                        resultIntent.putExtra(TYPE_EVENT, payload.toString());
+                        resultIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
 
-                    if (TextUtils.isEmpty(imageUrl)) {
-                        showNotificationMessage(getApplicationContext(), title, message, timestamp, resultIntent);
-                    }
-                    else {
-                        showNotificationMessageWithBigImage(getApplicationContext(), title, message, timestamp, resultIntent, imageUrl);
+                        if (TextUtils.isEmpty(imageUrl)) {
+                            showNotificationMessage(getApplicationContext(), title, message, timestamp, resultIntent);
+                        } else {
+                            showNotificationMessageWithBigImage(getApplicationContext(), title, message, timestamp, resultIntent, imageUrl);
+                        }
                     }
                 }
                 break;
+            case TYPE_VERFIFICATION:
+                LocalStore.putObject(TYPE_VERFIFICATION, payload.getString("pin"));
         }
     }
 
