@@ -1,13 +1,11 @@
 <resources>
     <string name="app_name">CampusDock</string>
-    <string name="title_home">Home</string>
-    <string name="title_dashboard">Dashboard</string>
-    <string name="title_notifications">Notifications</string>
     <string name="upcoming">UpComing</string>
+    <string name="bulletins">Bulletins</string>
+    <string name="discover">Discover</string>
     <string name="history">History</string>
-    <string name="interests">Interests</string>
-    <string name="classroom">ClassRoom</string>
     <string name="profile">Profile</string>
+
     <string name="activity_title">Campus Dock</string>
     <string name="simple_activity_transition">simple_activity_transition</string>
     <string name="enter_your_roll_number">Enter Your Roll Number</string>

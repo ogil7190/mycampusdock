@@ -61,6 +61,7 @@ import es.dmoral.toasty.Toasty;
 import static com.swalla.campusdock.Utils.Config.PREF_NAME;
 import static com.swalla.campusdock.Utils.Config.PREF_REG_ID_KEY;
 import static com.swalla.campusdock.Utils.Config.PREF_USER_API_KEY;
+import static com.swalla.campusdock.Utils.Config.PREF_USER_EMAIL;
 import static com.swalla.campusdock.Utils.Config.PREF_USER_IS_LOGGED_IN;
 import static com.swalla.campusdock.Utils.Config.PREF_USER_NAME;
 import static com.swalla.campusdock.Utils.Config.PREF_USER_PHONE;
@@ -77,17 +78,12 @@ public class Registration extends AppCompatActivity {
     private boolean isValid;
     private ProgressBar progressBar;
     private ImageView logo;
-    private int isSuccesfullyLoggedIn = -1;
-    private String res;
-    private String tempRoll = "OGIL";
+    private JSONObject res;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         pref = getSharedPreferences(PREF_NAME, MODE_PRIVATE);
-        if(pref.getBoolean(PREF_USER_IS_LOGGED_IN, false)){
-            startActivity(new Intent(getApplicationContext(), HomeActivity.class));
-            finish();
-        }
         setContentView(R.layout.activity_registration);
         logo = findViewById(R.id.logo);
 
@@ -102,7 +98,7 @@ public class Registration extends AppCompatActivity {
         editText_rollNumber.setOnFocusChangeListener(new View.OnFocusChangeListener() {
             @Override
             public void onFocusChange(View v, boolean hasFocus) {
-                if(hasFocus) {
+                if (hasFocus) {
                     ObjectAnimator animation = ObjectAnimator.ofFloat(v, "translationZ", 8f);
                     animation.setDuration(300);
                     animation.start();
@@ -110,7 +106,7 @@ public class Registration extends AppCompatActivity {
                     ObjectAnimator animation = ObjectAnimator.ofFloat(v, "translationZ", 2f);
                     animation.setDuration(300);
                     animation.start();
-                    InputMethodManager imm = (InputMethodManager)getSystemService(Context.INPUT_METHOD_SERVICE);
+                    InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
                     imm.hideSoftInputFromWindow(v.getWindowToken(), 0);
                 }
             }
@@ -133,12 +129,23 @@ public class Registration extends AppCompatActivity {
             public void afterTextChanged(Editable editable) {
                 int length = editable.length();
                 if (prevL < length) {
-                    switch (length){
-                        case 1 : editable.append("/");break;
-                        case 4 : editable.append("/");break;
-                        case 8 : editable.append("/");break;
-                        case 12 : editable.append("/");break;
-                        case 14 : editable.append("/"); isValid = true; break;
+                    switch (length) {
+                        case 1:
+                            editable.append("/");
+                            break;
+                        case 4:
+                            editable.append("/");
+                            break;
+                        case 8:
+                            editable.append("/");
+                            break;
+                        case 12:
+                            editable.append("/");
+                            break;
+                        case 14:
+                            editable.append("/");
+                            isValid = true;
+                            break;
                     }
                 }
             }
@@ -152,7 +159,7 @@ public class Registration extends AppCompatActivity {
                 TransitionManager.beginDelayedTransition(transitionsContainer);
                 String roll = editText_rollNumber.getText().toString().toLowerCase();
 
-                if(validate(roll) && isValid){
+                if (validate(roll) && isValid) {
                     register(roll);
                     text.setVisibility(View.VISIBLE);
                 } else {
@@ -170,49 +177,52 @@ public class Registration extends AppCompatActivity {
         return activeNetworkInfo != null && activeNetworkInfo.isConnected();
     }
 
-    private boolean validate(String roll){
-        if(roll.isEmpty() || roll.length()==0){
+    private boolean validate(String roll) {
+        if (roll.isEmpty() || roll.length() == 0) {
             return false;
         }
-        if(!isNetworkAvailable()){
+        if (!isNetworkAvailable()) {
             Toasty.error(getApplicationContext(), "No Network Available!").show();
             return false;
-        }
-        else return true;
+        } else return true;
     }
 
     private SharedPreferences pref;
 
-    private void register(final String roll){
-        isSuccesfullyLoggedIn = 0;
-        tempRoll = roll.replace('/','-');
-        FirebaseMessaging.getInstance().subscribeToTopic(tempRoll);
-        String url ="https://mycampusdock.herokuapp.com/Register";
+    private void register(final String roll) {
+        String url = "https://mycampusdock.herokuapp.com/Register";
         StringRequest stringRequest = new StringRequest(Request.Method.POST, url,
                 new Response.Listener<String>() {
                     @Override
                     public void onResponse(String response) {
                         progressBar.setVisibility(View.GONE);
                         logo.setVisibility(View.VISIBLE);
-                        Log.d("App", "Response:"+response);
-                        if(response.equals("{}")){
+                        Log.d("App", "Response:" + response);
+                        if (response.equals("{}")) {
                             Toasty.error(getApplicationContext(), "Invalid Roll No.", Toast.LENGTH_SHORT).show();
                             text.setVisibility(View.GONE);
                             return;
                         }
-                        res = response;
-                        pref.edit().putString(PREF_USER_ROLL, roll).apply();
-                        verifyPin();
+                        try {
+                            res = new JSONObject(response);
+                            pref.edit().putString(PREF_USER_ROLL, roll).apply();
+                            verifyPin(res.getString("email"));
+                        } catch (JSONException e) {
+                            e.printStackTrace();
+                        }
                     }
                 }, new Response.ErrorListener() {
             @Override
             public void onErrorResponse(VolleyError error) {
-                Log.d("App",error.toString());
+                Log.d("App", error.toString());
+                Toasty.error(getApplicationContext(), "Try Again!", Toast.LENGTH_LONG).show();
+                progressBar.setVisibility(View.GONE);
+                logo.setVisibility(View.VISIBLE);
             }
-        }){
+        }) {
             @Override
             protected Map<String, String> getParams() throws AuthFailureError {
-                Map<String,String> params = new HashMap<>();
+                Map<String, String> params = new HashMap<>();
                 params.put("roll", roll);
                 params.put("token", FirebaseInstanceId.getInstance().getToken());
                 return params;
@@ -221,29 +231,28 @@ public class Registration extends AppCompatActivity {
         LocalStore.getNetworkqueue(this).add(stringRequest);
     }
 
-    private void saveUser(String response) throws JSONException{
-        JSONObject obj = new JSONObject(response);
+    private void saveUser(JSONObject obj) throws JSONException {
         SharedPreferences.Editor editor = pref.edit();
         editor.putString(PREF_USER_NAME, obj.getString("name"));
         editor.putString(PREF_USER_PHONE, obj.getString("phone"));
         editor.putString(PREF_USER_SUBSCRIPTIONS, obj.get("subscriptions").toString());
         editor.putBoolean(PREF_USER_IS_LOGGED_IN, true);
         editor.putString(PREF_USER_API_KEY, obj.getString("api"));
+        editor.putString(PREF_USER_EMAIL, obj.getString("email"));
         editor.apply();
         subscribe(obj.getJSONObject("subscriptions"));
-        isSuccesfullyLoggedIn = 1;
         registrationDone();
     }
 
-    private void subscribe(JSONObject obj) throws JSONException{
+    private void subscribe(JSONObject obj) throws JSONException {
         JSONArray a = obj.getJSONArray(Config.TYPE_IMPLICIT);
-        for(int i=0; i<a.length(); i++){
+        for (int i = 0; i < a.length(); i++) {
             String s = a.getString(i);
             FirebaseMessaging.getInstance().subscribeToTopic(s);
         }
 
         a = obj.getJSONArray(Config.TYPE_EXPLICIT);
-        for(int i=0; i<a.length(); i++){
+        for (int i = 0; i < a.length(); i++) {
             String s = a.getString(i);
             FirebaseMessaging.getInstance().subscribeToTopic(s);
         }
@@ -251,7 +260,7 @@ public class Registration extends AppCompatActivity {
         editText_rollNumber.setInputType(InputType.TYPE_NULL);
     }
 
-    private void verifyPin(){
+    private void verifyPin(String email) {
         LayoutInflater inflater = this.getLayoutInflater();
         View dialogView = inflater.inflate(R.layout.verify_pin, null);
 
@@ -266,6 +275,8 @@ public class Registration extends AppCompatActivity {
         final EditText p4 = dialogView.findViewById(R.id.p4);
         final TextView error = dialogView.findViewById(R.id.textError);
         final TextView disable = dialogView.findViewById(R.id.disableView);
+        final TextView errorHelp = dialogView.findViewById(R.id.textHelp);
+        errorHelp.setText("An e-mail is sent to " + email + ". Please verify PIN");
         p1.addTextChangedListener(new TextWatcher() {
             @Override
             public void beforeTextChanged(CharSequence charSequence, int i, int i1, int i2) {
@@ -274,8 +285,7 @@ public class Registration extends AppCompatActivity {
 
             @Override
             public void onTextChanged(CharSequence charSequence, int i, int i1, int i2) {
-                if(i2==1)
-                {
+                if (i2 == 1) {
                     p2.requestFocus();
                 }
             }
@@ -294,8 +304,7 @@ public class Registration extends AppCompatActivity {
 
             @Override
             public void onTextChanged(CharSequence charSequence, int i, int i1, int i2) {
-                if(i2==1)
-                {
+                if (i2 == 1) {
                     p3.requestFocus();
                 }
             }
@@ -314,8 +323,7 @@ public class Registration extends AppCompatActivity {
 
             @Override
             public void onTextChanged(CharSequence charSequence, int i, int i1, int i2) {
-                if(i2==1)
-                {
+                if (i2 == 1) {
                     p4.requestFocus();
                 }
             }
@@ -338,7 +346,7 @@ public class Registration extends AppCompatActivity {
 
             @Override
             public void afterTextChanged(Editable editable) {
-                if(p4.getText().toString().length()>0) {
+                if (p4.getText().toString().length() > 0) {
                     error.setVisibility(View.GONE);
                     disable.setVisibility(View.VISIBLE);
                     progressBar.setVisibility(View.VISIBLE);
@@ -356,8 +364,7 @@ public class Registration extends AppCompatActivity {
                     } catch (Exception e) {
                         e.printStackTrace();
                     }
-                }
-                else{
+                } else {
                     error.setVisibility(View.GONE);
                     disable.setVisibility(View.GONE);
                     progressBar.setVisibility(View.GONE);
@@ -366,42 +373,26 @@ public class Registration extends AppCompatActivity {
         });
     }
 
-    private int isPinVerified(String pinEntered){
-        Log.d("App", "Pin :"+pinEntered);
-        String originalPin = (String)LocalStore.getObject(TYPE_VERFIFICATION);
-        Log.d("App", "ORIGINAL PIN:"+originalPin);
-        if(pinEntered.equals(originalPin)){
+    private int isPinVerified(String pinEntered) {
+        Log.d("App", "Pin :" + pinEntered);
+        String originalPin = (String) LocalStore.getObject(TYPE_VERFIFICATION);
+        Log.d("App", "ORIGINAL PIN:" + originalPin);
+        if (pinEntered.equals(originalPin)) {
             return 1;
         }
         return 0;
     }
 
-    private void registrationDone(){
+    private void registrationDone() {
         Intent intent = new Intent(getApplicationContext(), HomeActivity.class);
         startActivity(intent);
         finish();
     }
 
-    private void getStoragePermission(){
+    private void getStoragePermission() {
         if (ContextCompat.checkSelfPermission(getApplicationContext(), Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, 7190);
         }
     }
 
-    @Override
-    protected void onPause() {
-        super.onPause();
-    }
-
-    @Override
-    protected void onDestroy() {
-        if(isSuccesfullyLoggedIn == 0){
-            Log.d("App","Registration not done!");
-            FirebaseMessaging.getInstance().unsubscribeFromTopic(tempRoll.replace('/','-'));
-            pref.edit().clear().commit();
-        } else if(isSuccesfullyLoggedIn == 1){
-            Log.d("App","Registration Done!");
-        }
-        super.onDestroy();
-    }
 }

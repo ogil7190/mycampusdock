@@ -7,6 +7,7 @@
         <item name="colorAccent">@color/colorAccent</item>
         <item name="android:textViewStyle">@style/UbuntuFont</item>
         <item name="android:buttonStyle">@style/UbuntuFontButton</item>
+        <item name="android:fontFamily">@font/ubuntu</item>
     </style>
 
     <style name="HolyBlack" parent="Theme.AppCompat.Light.NoActionBar">
@@ -19,7 +20,7 @@
     </style>
 
     <style name="UbuntuFontButton" parent="android:Widget.Holo.Button">
-        <item name="android:fontFamily">@font/ubuntu_bold</item>
+        <item name="android:fontFamily">@font/ubuntu</item>
     </style>
 
     <style name="PinDialog" parent="android:Theme.Dialog">

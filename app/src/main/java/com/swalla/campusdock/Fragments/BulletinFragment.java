@@ -42,21 +42,17 @@ public class BulletinFragment extends Fragment {
     private BulletinAdapter adapter;
     private List<Bulletin> bulletinList;
     private SharedPreferences pref;
-    private HomeActivity activity;
 
     public BulletinFragment() {}
 
-    public static BulletinFragment newInstance(HomeActivity context) {
+    public static BulletinFragment newInstance() {
         BulletinFragment fragment = new BulletinFragment();
-        fragment.activity = context;
         return fragment;
     }
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         View v = inflater.inflate(R.layout.fragment_class, null);
-
-        LocalBroadcastManager.getInstance(getContext()).registerReceiver(receiver, new IntentFilter(Config.PUSH_NOTI));
 
         recyclerView = v.findViewById(R.id.recycler_view_class);
         pref = getContext().getSharedPreferences(Config.PREF_NAME, MODE_PRIVATE);
@@ -66,7 +62,7 @@ public class BulletinFragment extends Fragment {
 
         Collections.reverse(bulletinList);
 
-        bulletinList.add(new Bulletin("ogil","Demo","Demo Description","/demo"));
+        bulletinList.add(new Bulletin("@ogil","Demo Bulletin For Classes","This is my <b>demo Description </b><br><br>#OGIL7190","", "@dock", "21 JAN 2018", "21 JAN 2018"));
         adapter = new BulletinAdapter(getContext(), bulletinList);
 
         RecyclerView.LayoutManager mLayoutManager = new LinearLayoutManager(getContext());
@@ -99,7 +95,7 @@ public class BulletinFragment extends Fragment {
 
     private Bulletin startingBulletin;
 
-    public void setStartingEvent(Bulletin bulletin) {
+    public void setStartingBulletin(Bulletin bulletin) {
         startingBulletin = bulletin;
     }
 
@@ -115,18 +111,4 @@ public class BulletinFragment extends Fragment {
             startActivity(intent);
         }
     }
-
-    @Override
-    public void onDestroy() {
-        LocalBroadcastManager.getInstance(getContext()).unregisterReceiver(receiver);
-        super.onDestroy();
-    }
-
-
-    private BroadcastReceiver receiver = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            Log.d("App", intent.getAction());
-        }
-    };
 }

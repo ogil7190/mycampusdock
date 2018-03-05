@@ -8,6 +8,8 @@ import android.content.IntentFilter;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import android.support.v4.app.ActivityOptionsCompat;
 import android.support.v4.app.Fragment;
 import android.support.v4.content.LocalBroadcastManager;
@@ -15,6 +17,7 @@ import android.support.v4.view.ViewCompat;
 import android.support.v7.widget.DefaultItemAnimator;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -49,11 +52,9 @@ public class HomeFragment extends Fragment {
     private RecyclerView recyclerView;
     private EventAdapter adapter;
     private List<Event> eventList;
-    private HomeActivity activity;
 
-    public static HomeFragment newInstance(HomeActivity context) {
+    public static HomeFragment newInstance() {
         HomeFragment fragment = new HomeFragment();
-        fragment.activity = context;
         return fragment;
     }
 
@@ -63,8 +64,6 @@ public class HomeFragment extends Fragment {
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         View v = inflater.inflate(R.layout.fragment_home,null);
 
-        LocalBroadcastManager.getInstance(getContext()).registerReceiver(receiver, new IntentFilter(Config.PUSH_NOTI));
-
         recyclerView = v.findViewById(R.id.recycler_view);
         eventList = new ArrayList<>();
 
@@ -72,7 +71,9 @@ public class HomeFragment extends Fragment {
 
         Collections.reverse(eventList);
 
-        eventList.add(new Event("@ogil", "CS: GO LAN Gaming","Show your <b>Gaming skills</b> in popular CS Go game!<br> Compete with other players <br><br><u>Follow us on Instagram</u> <br> <b>#OGIL7190</b> ","18 Jan - 19 Jan", "DOCK", "Game", null, "@Dock"));
+        Event demo = new Event("@ogil", "CS: GO LAN Gaming","Show your <b>Gaming skills</b> in popular CS Go game!<br> Compete with other players <br><br><u>Follow us on Instagram</u> <br> <b>#OGIL7190</b> ","18 Jan","19 Jan", null, "@Dock");
+        demo.setEnrolled(true);
+        eventList.add(demo);
         adapter = new EventAdapter(getContext(), eventList);
 
         RecyclerView.LayoutManager mLayoutManager = new LinearLayoutManager(getContext());
@@ -92,7 +93,6 @@ public class HomeFragment extends Fragment {
                         ObjectAnimator animation = ObjectAnimator.ofFloat(view, "translationZ", 8f);
                         animation.setDuration(300);
                         animation.start();
-
                     }
                 })
         );
@@ -108,6 +108,12 @@ public class HomeFragment extends Fragment {
     }
 
     private void gotoEvent(Event event, View view){
+        if(event.getEventName().contains(" ● ")) {
+            Event e = DockDB.getIntsance(getContext()).getEventDao().getEvent(event.getId());
+            e.setEventName(e.getEventName().replace(" ● ", ""));
+            DockDB.getIntsance(getContext()).getEventDao().update(e);
+        }
+        event.getEventName().replace(" ● ", "");
         Intent intent = new Intent(getActivity(), EventActivity.class);
         intent.putExtra(Config.TYPE_EVENT, event);
         if(startingEvent == null) {
@@ -118,39 +124,4 @@ public class HomeFragment extends Fragment {
             startActivity(intent);
         }
     }
-
-
-    @Override
-    public void onDestroy() {
-        LocalBroadcastManager.getInstance(getContext()).unregisterReceiver(receiver);
-        super.onDestroy();
-    }
-
-    private BroadcastReceiver receiver = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            if(intent.getAction().equals(Config.PUSH_NOTI)){
-                Bundle extras = intent.getExtras();
-                try {
-                    activity.setBadge();
-                    JSONObject obj = new JSONObject(extras.getString("event"));
-                    Event newEvent = new Event(obj.getString("event_id"), obj.getString("name"), obj.getString("description"), obj.getString("date"), obj.getString("organizer"), obj.getString("category"), obj.getString("url"), obj.getString("created_by"));
-
-                    Collections.reverse(eventList);
-                    eventList.add(newEvent);
-                    Collections.reverse(eventList);
-
-                    adapter.notifyDataSetChanged();
-                    Handler handler = new Handler(Looper.getMainLooper());
-                    handler.post(new Runnable() {
-                        public void run() {
-                            Toasty.normal(getContext(),"New Event Added!", Toast.LENGTH_SHORT).show();
-                        }
-                    });
-                } catch (JSONException e) {
-                    e.printStackTrace();
-                }
-            }
-        }
-    };
 }

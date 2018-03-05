@@ -1,17 +1,17 @@
 package com.swalla.campusdock.Activities;
 
-import android.app.AlertDialog;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.graphics.Color;
 import android.os.Build;
 import android.os.Environment;
 import android.support.design.widget.Snackbar;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.text.Html;
+import android.text.method.ScrollingMovementMethod;
 import android.util.Log;
+import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
 import android.widget.Button;
@@ -34,10 +34,13 @@ import com.swalla.campusdock.Utils.NotiUtil;
 
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.w3c.dom.Text;
 
 import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
+
+import es.dmoral.toasty.Toasty;
 
 import static com.swalla.campusdock.Utils.Config.PREF_NAME;
 import static com.swalla.campusdock.Utils.Config.PREF_USER_API_KEY;
@@ -45,32 +48,43 @@ import static com.swalla.campusdock.Utils.Config.PREF_USER_ROLL;
 
 public class EventActivity extends AppCompatActivity  {
     private ImageView cardImage;
-    private TextView cardTitle, cardDescription, cardDate, cardCategory, cardOrganizer;
+    private TextView cardTitle, cardDescription, cardDate;
     private SharedPreferences pref;
     private Button enroll;
     private Event event;
     private TextView chipText;
     private Snackbar snackbar;
+
+    private AlertDialog prompt;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setTheme(R.style.HolyBlack);
         setContentView(R.layout.activity_event);
         event = (Event) getIntent().getSerializableExtra("event");
+        event = DockDB.getIntsance(this).getEventDao().getEvent(event.getId());
         enroll = findViewById(R.id.enroll);
         if(event.isEnrolled()){
             enroll.setText("Successfully Enrolled");
-            enroll.setEnabled(false);
-            enroll.setBackgroundColor(Color.parseColor("#666666"));
+            enroll.setBackground(getDrawable(R.drawable.input_round_disable));
         }
+        if(event.getId().equals("@ogil")){
+            enroll.setEnabled(false);
+        }
+
         enroll.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-            snackbar = Snackbar.make(view,"Do you really want to get enrolled in this event?",Snackbar.LENGTH_INDEFINITE);
-            snackbar.setAction("Enroll", new View.OnClickListener() {
+            String text = "Do you want to get enrolled in this event?";
+            String text2 = "Already enrolled! Wants to withdraw yourself?";
+            String action = "Enroll";
+            String action2 = "WithDraw";
+            snackbar = Snackbar.make(view, event.isEnrolled()?text2:text ,5000);
+            snackbar.setAction(event.isEnrolled()?action2:action, new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                    subscribe(event.getId());
+                    handleSubscription(event.getId());
                 }
             }).setActionTextColor(getResources().getColor(R.color.colorAccent)).show();
             }
@@ -80,8 +94,6 @@ public class EventActivity extends AppCompatActivity  {
         cardTitle = findViewById(R.id.card_title);
         cardDescription = findViewById(R.id.card_desc);
         cardDate = findViewById(R.id.card_date);
-        cardCategory = findViewById(R.id.card_category);
-        cardOrganizer = findViewById(R.id.card_organizer);
 
         cardTitle.setText(event.getEventName());
 
@@ -91,23 +103,21 @@ public class EventActivity extends AppCompatActivity  {
         else{
             cardDescription.setText(Html.fromHtml(event.getDescription()));
         }
-
+        cardDescription.setMovementMethod(new ScrollingMovementMethod());
         chipText.setText(event.getCreated_by());
-        cardDate.setText(event.getDate());
-        cardOrganizer.setText(event.getOrganizer());
-        cardCategory.setText(event.getCategory());
+        cardDate.setText(event.getDate()+" - "+event.getEndDate());
         if(event.getUrl()!=null) {
             File folder = new File(Environment.getExternalStorageDirectory() + File.separator + "CampusDock");
             File f = new File(folder, event.getUrl());
             if(f.exists())
                 Glide.with(this).load(f).into(cardImage);
             else {
-                cardImage.setImageResource(event.getBanner());
+                cardImage.setImageResource(R.drawable.test_poster);
                 NotiUtil.getBitmapFromURL(event.getUrl());
             }
         }
         else {
-            cardImage.setImageResource(event.getBanner());
+            cardImage.setImageResource(R.drawable.test_poster);
         }
         cardImage.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -117,19 +127,18 @@ public class EventActivity extends AppCompatActivity  {
                 startActivity(preview);
             }
         });
+        init();
     }
 
-    @Override
-    public boolean onTouchEvent(MotionEvent event) {
-        int action = event.getAction();
-        switch (action) {
-            case MotionEvent.ACTION_DOWN:
-                if (snackbar != null && snackbar.isShown()) {
-                    snackbar.dismiss();
-                }
-                break;
-        }
-        return super.onTouchEvent(event);
+    private void init(){
+        LayoutInflater inflater = this.getLayoutInflater();
+        View dialogView = inflater.inflate(R.layout.loading_prompt, null);
+        AlertDialog.Builder dialogBuilder = new AlertDialog.Builder(this, R.style.PinDialog);
+        prompt = dialogBuilder.setCancelable(false).setView(dialogView).create();
+        TextView title = dialogView.findViewById(R.id.title);
+        TextView message = dialogView.findViewById(R.id.message);
+        title.setText("Please Wait...");
+        message.setText("Updating changes on server");
     }
 
     @Override
@@ -138,7 +147,8 @@ public class EventActivity extends AppCompatActivity  {
         super.onBackPressed();
     }
 
-    private void subscribe(final String eventId){
+    private void handleSubscription(final String eventId){
+        prompt.show();
         pref = getSharedPreferences(PREF_NAME, MODE_PRIVATE);
         String url = "https://mycampusdock.herokuapp.com/enroll";
         StringRequest stringRequest = new StringRequest(Request.Method.POST, url,
@@ -147,22 +157,34 @@ public class EventActivity extends AppCompatActivity  {
                     public void onResponse(String response) {
                         Log.d("App", "response:"+response);
                         try {
-                            if (new JSONObject(response).getBoolean("error")) {
+                            if (!new JSONObject(response).getBoolean("error")) {
                                 FirebaseMessaging.getInstance().subscribeToTopic(event.getId());
-                                event.setEnrolled(true);
-                                enroll.setText("Successfully Enrolled!");
-                                enroll.setBackgroundColor(Color.parseColor("#666666"));
+                                if(event.isEnrolled())
+                                    event.setEnrolled(false);
+                                else
+                                    event.setEnrolled(true);
+                                enroll.setText(event.isEnrolled()?"Successfully Enrolled":"Click to Enroll");
+                                if(event.isEnrolled())
+                                    enroll.setBackground(getDrawable(R.drawable.input_round_disable));
+                                else
+                                    enroll.setBackground(getDrawable(R.drawable.input_round_color));
+
                                 DockDB.getIntsance(getApplicationContext()).getEventDao().update(event);
-                                enroll.setEnabled(false);
+                                prompt.dismiss();
+                                Toasty.normal(getApplicationContext(),"Success!", Toast.LENGTH_SHORT).show();
                             }
                         } catch (JSONException e){
                             e.printStackTrace();
+                            prompt.dismiss();
+                            Toasty.normal(getApplicationContext(),"Something went wrong!", Toast.LENGTH_SHORT).show();
                         }
                     }
                 }, new Response.ErrorListener() {
             @Override
             public void onErrorResponse(VolleyError error) {
                 Log.d("App", error.toString());
+                prompt.dismiss();
+                Toasty.normal(getApplicationContext(),"Something went wrong!", Toast.LENGTH_SHORT).show();
             }
         }) {
             @Override
@@ -171,7 +193,7 @@ public class EventActivity extends AppCompatActivity  {
                 params.put("roll", pref.getString(PREF_USER_ROLL, ""));
                 params.put("api", pref.getString(PREF_USER_API_KEY, ""));
                 params.put("event_id", eventId);
-                params.put("flag", "subscribe");
+                params.put("flag", event.isEnrolled() ? ""+107 : ""+101);
                 return params;
             }
         };

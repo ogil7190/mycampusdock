@@ -3,6 +3,7 @@ package com.swalla.campusdock.Services;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.graphics.Bitmap;
 import android.support.v4.content.LocalBroadcastManager;
 import android.text.TextUtils;
 import android.util.Log;
@@ -17,6 +18,7 @@ import com.android.volley.toolbox.StringRequest;
 import com.google.firebase.messaging.FirebaseMessagingService;
 import com.google.firebase.messaging.RemoteMessage;
 import com.swalla.campusdock.Activities.HomeActivity;
+import com.swalla.campusdock.Classes.Bulletin;
 import com.swalla.campusdock.Classes.Event;
 import com.swalla.campusdock.Utils.Config;
 import com.swalla.campusdock.Databases.DockDB;
@@ -38,7 +40,9 @@ import static com.swalla.campusdock.Utils.Config.PREF_USER_NAME;
 import static com.swalla.campusdock.Utils.Config.PREF_USER_PHONE;
 import static com.swalla.campusdock.Utils.Config.PREF_USER_ROLL;
 import static com.swalla.campusdock.Utils.Config.PREF_USER_SUBSCRIPTIONS;
+import static com.swalla.campusdock.Utils.Config.TYPE_BULLETIN;
 import static com.swalla.campusdock.Utils.Config.TYPE_EVENT;
+import static com.swalla.campusdock.Utils.Config.TYPE_EVENT_UPDATE;
 import static com.swalla.campusdock.Utils.Config.TYPE_VERFIFICATION;
 
 
@@ -59,11 +63,6 @@ public class CustomFirebaseMessagingService extends FirebaseMessagingService {
         pref = getApplicationContext().getSharedPreferences(Config.PREF_NAME, MODE_PRIVATE);
         if (remoteMessage == null) return;
 
-        if (remoteMessage.getNotification() != null) {
-            Log.e(TAG, "Notification Body: " + remoteMessage.getNotification().getBody());
-            handleNotification(remoteMessage.getNotification().getBody());
-        }
-
         if (remoteMessage.getData().size() > 0) {
             Log.e(TAG, "Data Payload: " + remoteMessage.getData().toString());
 
@@ -76,26 +75,11 @@ public class CustomFirebaseMessagingService extends FirebaseMessagingService {
         }
     }
 
-    private void handleNotification(String message) {
-        if (!NotiUtil.isAppIsInBackground(getApplicationContext())) {
-
-            // app is in foreground, broadcast the push message
-            Intent pushNotification = new Intent(Config.PUSH_NOTI);
-            pushNotification.putExtra("message", message);
-            LocalBroadcastManager.getInstance(this).sendBroadcast(pushNotification);
-
-            // play notification sound
-            NotiUtil notificationUtils = new NotiUtil(getApplicationContext());
-            notificationUtils.playNotificationSound();
-        }
-    }
-
     private void handleDataMessage(JSONObject obj) throws JSONException{
         Log.e(TAG, "pushed json: " + obj.toString());
 
         JSONObject data = obj.getJSONObject("content");
         final JSONObject payload = new JSONObject(data.getString("payload"));
-        // {"type":"event", "name":"Demo Event", "description":"This is the test description", "date":"JAN 21", "organizer":"FCS", "category":"Demo" }
 
         switch (payload.getString("type")){
             case TYPE_EVENT :
@@ -111,14 +95,17 @@ public class CustomFirebaseMessagingService extends FirebaseMessagingService {
                 Log.e(TAG, "timestamp: " + timestamp);
 
                 if(pref.getBoolean(PREF_USER_IS_LOGGED_IN, false)) {
-                    accountReach(payload.getString("event_id"));
-                    DockDB.getIntsance(getApplicationContext()).getEventDao().insert(new Event(payload.getString("event_id"), payload.getString("name"), payload.getString("description").replace("\r\n", "<br>"), payload.getString("date"), payload.getString("organizer"), payload.getString("category"), payload.getString("url"), payload.getString("created_by")));
+                    accountReach(payload.getString("event_id"), ""+103);
+                    DockDB.getIntsance(getApplicationContext()).getEventDao().insert(Event.parseFromJSON(payload));
                     if (!NotiUtil.isAppIsInBackground(getApplicationContext())) {
                         NotiUtil notificationUtils = new NotiUtil(getApplicationContext());
                         notificationUtils.getBitmapFromURL(imageUrl);
+                        Intent notify = new Intent(Config.NEW_UPDATE);
+                        notify.putExtra(Config.NEW_UPDATE, Config.SHOW_NEW_EVENT);
+                        LocalBroadcastManager.getInstance(getApplicationContext()).sendBroadcast(notify);
                     } else {
                         Intent resultIntent = new Intent(getApplicationContext(), HomeActivity.class);
-                        resultIntent.setAction(Config.PUSH_NOTI);
+                        resultIntent.setAction(Config.SHOW_NEW_EVENT);
                         resultIntent.putExtra(TYPE_EVENT, payload.toString());
                         resultIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
 
@@ -130,12 +117,51 @@ public class CustomFirebaseMessagingService extends FirebaseMessagingService {
                     }
                 }
                 break;
-            case TYPE_VERFIFICATION:
+            case TYPE_EVENT_UPDATE :
+                JSONObject updatedData = payload.getJSONObject("updatedData");
+                try {
+                    Log.d("App", "ID:"+updatedData.getString("event_id"));
+                    Event e = DockDB.getIntsance(this).getEventDao().getEvent(updatedData.getString("event_id"));
+                    Log.d("app","Event:"+e.getEventName()+e.getId());
+                    e = e.updateEvent(updatedData);
+                    DockDB.getIntsance(this).getEventDao().update(e);
+                } catch (JSONException e){
+                    e.printStackTrace();
+                }
+                break;
+            case TYPE_BULLETIN :
+                final String noti_bullet_title = data.getString("title");
+                final String noti_bullet_message = data.getString("description");
+                final String noti_bullet_timestamp = data.getString("timestamp");
+
+                Log.e(TAG, "title: " + noti_bullet_title);
+                Log.e(TAG, "message: " + noti_bullet_message);
+                Log.e(TAG, "payload: " + payload.toString());
+                Log.e(TAG, "timestamp: " + noti_bullet_timestamp);
+
+                if(pref.getBoolean(PREF_USER_IS_LOGGED_IN, false)) {
+                    accountReach(payload.getString("bulletin_id"), ""+105);
+                    DockDB.getIntsance(getApplicationContext()).getBulletinDao().insert(Bulletin.parseFromJSON(payload));
+                    if (!NotiUtil.isAppIsInBackground(getApplicationContext())) {
+                        Intent notify = new Intent(Config.NEW_UPDATE);
+                        notify.putExtra(Config.NEW_UPDATE, Config.SHOW_NEW_BULLETIN);
+                        LocalBroadcastManager.getInstance(getApplicationContext()).sendBroadcast(notify);
+                    } else {
+                        Intent resultIntent = new Intent(getApplicationContext(), HomeActivity.class);
+                        resultIntent.setAction(Config.SHOW_NEW_BULLETIN);
+                        resultIntent.putExtra(TYPE_BULLETIN, payload.toString());
+                        resultIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                        showNotificationMessage(getApplicationContext(), noti_bullet_title, noti_bullet_message, noti_bullet_timestamp, resultIntent);
+                    }
+                }
+                break;
+            case TYPE_VERFIFICATION :
                 LocalStore.putObject(TYPE_VERFIFICATION, payload.getString("pin"));
+                break;
         }
     }
 
-    private void accountReach(final String eventId){
+    private void accountReach(final String eventId,final String reach){
         pref = getSharedPreferences(PREF_NAME, MODE_PRIVATE);
         String url = "https://mycampusdock.herokuapp.com/enroll";
         StringRequest stringRequest = new StringRequest(Request.Method.POST, url,
@@ -156,7 +182,7 @@ public class CustomFirebaseMessagingService extends FirebaseMessagingService {
                 params.put("roll", pref.getString(PREF_USER_ROLL, ""));
                 params.put("api", pref.getString(PREF_USER_API_KEY, ""));
                 params.put("event_id", eventId);
-                params.put("flag", "reach");
+                params.put("flag", reach);
                 return params;
             }
         };

@@ -8,6 +8,7 @@
 
     <color name="cardHighlight">#9e0b0f</color>
 
+    <color name="holyBlack">#000000</color>
     <color name="pureWhite">#FFFFFF</color>
     <color name="darkGray">#666666</color>
     <color name="lintGray">#c5c5c5</color>

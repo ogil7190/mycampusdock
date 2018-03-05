@@ -1,6 +1,7 @@
 package com.swalla.campusdock.Activities;
 
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Handler;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -9,8 +10,11 @@ import android.view.WindowManager;
 
 import com.swalla.campusdock.R;
 
-public class SplashActivity extends AppCompatActivity {
+import static com.swalla.campusdock.Utils.Config.PREF_NAME;
+import static com.swalla.campusdock.Utils.Config.PREF_USER_IS_LOGGED_IN;
 
+public class SplashActivity extends AppCompatActivity {
+    private SharedPreferences pref;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -21,9 +25,15 @@ public class SplashActivity extends AppCompatActivity {
         new Handler().postDelayed(new Runnable() {
             @Override
             public void run() {
-                startActivity(new Intent(getApplicationContext(), Registration.class));
-                finish();
+                pref = getSharedPreferences(PREF_NAME, MODE_PRIVATE);
+                if (pref.getBoolean(PREF_USER_IS_LOGGED_IN, false)) {
+                    startActivity(new Intent(getApplicationContext(), HomeActivity.class));
+                    finish();
+                } else {
+                    startActivity(new Intent(getApplicationContext(), Registration.class));
+                    finish();
+                }
             }
-        }, 2000);
+        }, 1500);
     }
 }

@@ -26,6 +26,9 @@ public interface EventDao {
     @Delete
     void delete(Event user);
 
+    @Query("SELECT * FROM event WHERE id = :id")
+    Event getEvent(String id);
+
     @Query("DELETE FROM event")
     void nukeTable();
 }

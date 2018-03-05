@@ -82,7 +82,11 @@ public class ProfileFragment extends android.support.v4.app.Fragment {
                 db.getBulletinDao().nukeTable();
                 pref.edit().clear().apply();
                 File folder = new File(Environment.getExternalStorageDirectory() + File.separator + "CampusDock");
-                folder.delete();
+                String[] children = folder.list();
+                for (int i = 0; i < children.length; i++)
+                {
+                    new File(folder, children[i]).delete();
+                }
                 startActivity(new Intent(getActivity(), Registration.class));
                 getActivity().finish();
             }

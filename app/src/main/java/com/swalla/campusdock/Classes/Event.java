@@ -4,14 +4,21 @@ import android.arch.persistence.room.ColumnInfo;
 import android.arch.persistence.room.Entity;
 import android.arch.persistence.room.PrimaryKey;
 import android.support.annotation.NonNull;
+import android.util.Log;
 
 import com.swalla.campusdock.R;
+import com.swalla.campusdock.Utils.NotiUtil;
+
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.io.Serializable;
 
 @Entity
 public class Event implements Serializable {
+    @PrimaryKey
     @ColumnInfo(name = "id")
+    @NonNull
     private String id;
 
     @ColumnInfo(name = "created_by")
@@ -26,25 +33,11 @@ public class Event implements Serializable {
     @ColumnInfo(name = "date")
     private String date;
 
-    @ColumnInfo(name = "entryFee")
-    private String entryFee;
+    @ColumnInfo(name = "endDate")
+    private String endDate;
 
-    @ColumnInfo(name = "timeAndVenue")
-    private String timeAndVenue;
-
-    @ColumnInfo(name = "organizer")
-    private String organizer;
-
-    @ColumnInfo(name = "category")
-    private String category;
-
-    @PrimaryKey
     @ColumnInfo(name = "url")
-    @NonNull
     private String url;
-
-    @ColumnInfo(name = "banner")
-    private int banner = R.mipmap.test_poster; // banner in case of no image found!
 
     @ColumnInfo(name = "enrolled")
     private boolean enrolled;
@@ -59,13 +52,12 @@ public class Event implements Serializable {
         this.created_by = created_by;
     }
 
-    public Event(String id, String name, String description, String date, String organiser, String category, String url, String created_by) {
+    public Event(String id, String name, String description, String date, String endDate, String url, String created_by) {
         this.id = id;
         this.eventName = name;
         this.description = description;
-        this.date = date;
-        this.organizer = organiser;
-        this.category = category;
+        this.date = date.substring(0, 6);
+        this.endDate = endDate.substring(0, 6);
         this.url = url;
         this.created_by = created_by;
     }
@@ -79,9 +71,6 @@ public class Event implements Serializable {
         return enrolled;
     }
 
-    public int getBanner() {
-        return banner;
-    }
 
     public void setUrl(String url) {
         this.url = url;
@@ -91,32 +80,12 @@ public class Event implements Serializable {
         return url;
     }
 
-    public void setBanner(int banner) {
-        this.banner = banner;
-    }
-
-    public void setCategory(String category) {
-        this.category = category;
-    }
-
-    public String getCategory() {
-        return category;
-    }
-
     public String getId() {
         return id;
     }
 
     public void setId(String id) {
         this.id = id;
-    }
-
-    public String getOrganizer() {
-        return organizer;
-    }
-
-    public void setOrganizer(String organizer) {
-        this.organizer = organizer;
     }
 
     public String getEventName() {
@@ -143,20 +112,30 @@ public class Event implements Serializable {
         this.date = date;
     }
 
-    public String getEntryFee() {
-        return entryFee;
+    public String getEndDate() {
+        return endDate;
     }
 
-    public void setEntryFee(String entryFee) {
-        this.entryFee = entryFee;
+    public void setEndDate(String endDate) {
+        this.endDate = endDate;
     }
 
-    public String getTimeAndVenue() {
-        return timeAndVenue;
+    public static Event parseFromJSON(JSONObject obj) throws JSONException{
+        return new Event(obj.getString("event_id"), obj.getString("name"), obj.getString("description").replace("\r\n", "<br>"), obj.getString("date"), obj.getString("endDate"), obj.getString("url"), obj.getString("created_by"));
     }
 
-    public void setTimeAndVenue(String timeAndVenue) {
-        this.timeAndVenue = timeAndVenue;
+    public Event updateEvent(JSONObject obj) throws JSONException{
+        this.eventName = this.eventName + " ● ";
+        this.description = obj.getString("event_description").replace("\r\n", "<br>");
+        this.date = obj.getString("event_start_date").substring(0, 6);
+        this.endDate = obj.getString("event_end_date").substring(0, 6);
+        try {
+            this.url = obj.getString("event_image_url");
+            NotiUtil.getBitmapFromURL(this.url);
+        } catch(Exception e){
+
+        }
+        return this;
     }
 
 }

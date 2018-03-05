@@ -29,6 +29,7 @@ import java.net.URL;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
+import java.util.Random;
 
 /**
  * Created by ogil on 14/01/18.
@@ -101,7 +102,6 @@ public class NotiUtil {
                 .setSound(alarmSound)
                 .setStyle(inboxStyle)
                 .setPriority(Build.VERSION.SDK_INT >= Build.VERSION_CODES.N ? NotificationManager.IMPORTANCE_HIGH : Notification.PRIORITY_HIGH)
-                .setWhen(getTimeMilliSec(timeStamp))
                 .setSmallIcon(R.mipmap.ic_icon)
                 .setDefaults(NotificationCompat.DEFAULT_VIBRATE)
                 .setLargeIcon(BitmapFactory.decodeResource(mContext.getResources(), icon))
@@ -109,7 +109,7 @@ public class NotiUtil {
                 .build();
 
         NotificationManager notificationManager = (NotificationManager) mContext.getSystemService(Context.NOTIFICATION_SERVICE);
-        notificationManager.notify(Config.NOTI_SMALL_ID, notification);
+        notificationManager.notify(new Random().nextInt(Integer.MAX_VALUE), notification);
     }
 
     private void showBigNotification(Bitmap bitmap, NotificationCompat.Builder mBuilder, int icon, String title, String message, String timeStamp, PendingIntent resultPendingIntent, Uri alarmSound) {
@@ -124,7 +124,6 @@ public class NotiUtil {
                 .setContentIntent(resultPendingIntent)
                 .setSound(alarmSound)
                 .setStyle(bigPictureStyle)
-                .setWhen(getTimeMilliSec(timeStamp))
                 .setPriority(Build.VERSION.SDK_INT >= Build.VERSION_CODES.N ? NotificationManager.IMPORTANCE_HIGH : Notification.PRIORITY_HIGH)
                 .setSmallIcon(R.mipmap.ic_icon)
                 .setLargeIcon(BitmapFactory.decodeResource(mContext.getResources(), icon))
@@ -133,7 +132,7 @@ public class NotiUtil {
                 .build();
 
         NotificationManager notificationManager = (NotificationManager) mContext.getSystemService(Context.NOTIFICATION_SERVICE);
-        notificationManager.notify(Config.NOTI_BIG_ID, notification);
+        notificationManager.notify(new Random().nextInt(Integer.MAX_VALUE), notification);
     }
 
     /**

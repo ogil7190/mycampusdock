@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="70dp"
+    android:layout_marginLeft="5dp"
+    android:layout_marginRight="5dp"
+    android:id="@+id/layout_root"
+    android:background="@drawable/thin_border"
+    android:layout_height="70dp">
+
+    <ImageView
+        android:id="@+id/imageDownload"
+        android:layout_centerHorizontal="true"
+        android:layout_centerVertical="true"
+        android:tint="@color/darkGray"
+        android:src="@drawable/ic_cloud_download_black_24dp"
+        android:layout_width="25dp"
+        android:layout_height="25dp" />
+
+    <ProgressBar
+        android:visibility="gone"
+        android:layout_centerHorizontal="true"
+        android:layout_centerVertical="true"
+        android:id="@+id/progressBar"
+        style="?android:attr/progress"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:indeterminate="true"
+        android:indeterminateTint="@color/colorAccent" />
+
+    <TextView
+        android:id="@+id/fileName"
+        android:textSize="11dp"
+        android:layout_margin="1dp"
+        android:layout_alignParentBottom="true"
+        android:text="wef-21-08-2017.jpg"
+        android:textAlignment="center"
+        android:maxLines="1"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content" />
+
+</RelativeLayout>

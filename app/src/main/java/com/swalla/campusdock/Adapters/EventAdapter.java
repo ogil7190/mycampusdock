@@ -32,7 +32,7 @@ public class EventAdapter extends RecyclerView.Adapter<EventAdapter.EventViewHol
     private List<Event> eventList;
 
     public class EventViewHolder extends RecyclerView.ViewHolder {
-        private TextView title, date, organizer, category;
+        private TextView title, date;
         private ImageView banner;
         private TextView chipText;
 
@@ -40,9 +40,7 @@ public class EventAdapter extends RecyclerView.Adapter<EventAdapter.EventViewHol
             super(view);
             title = view.findViewById(R.id.card_title);
             date = view.findViewById(R.id.card_date);
-            organizer=  view.findViewById(R.id.card_organizer);
             banner = view.findViewById(R.id.card_image);
-            category = view.findViewById(R.id.card_category);
             chipText = view.findViewById(R.id.chipText);
         }
     }
@@ -54,8 +52,7 @@ public class EventAdapter extends RecyclerView.Adapter<EventAdapter.EventViewHol
 
     @Override
     public EventViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
-        View itemView = LayoutInflater.from(parent.getContext())
-                .inflate(R.layout.notification_card, parent, false);
+        View itemView = LayoutInflater.from(parent.getContext()).inflate(R.layout.notification_card, parent, false);
         return new EventViewHolder(itemView);
     }
 
@@ -63,13 +60,11 @@ public class EventAdapter extends RecyclerView.Adapter<EventAdapter.EventViewHol
     public void onBindViewHolder(final EventViewHolder holder, int position) {
         final Event currentEvent = eventList.get(position);
         holder.title.setText(currentEvent.getEventName());
-        holder.date.setText(currentEvent.getDate());
-        holder.organizer.setText(currentEvent.getOrganizer());
-        holder.category.setText(currentEvent.getCategory());
+        holder.date.setText(currentEvent.getDate()+" - "+currentEvent.getEndDate());
         holder.chipText.setText(currentEvent.getCreated_by());
 
         if(currentEvent.getUrl() == null) {
-            holder.banner.setImageResource(currentEvent.getBanner());
+            holder.banner.setImageResource(R.drawable.test_poster);
         }
         else {
             File folder = new File(Environment.getExternalStorageDirectory() + File.separator + "CampusDock");
@@ -77,7 +72,7 @@ public class EventAdapter extends RecyclerView.Adapter<EventAdapter.EventViewHol
             if(f.exists())
                 Glide.with(mContext).load(f).into(holder.banner);
             else{
-                holder.banner.setImageResource(currentEvent.getBanner());
+                holder.banner.setImageResource(R.drawable.test_poster);
                 NotiUtil.getBitmapFromURL(currentEvent.getUrl());
             }
         }

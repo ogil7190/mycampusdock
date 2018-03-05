@@ -1,86 +1,121 @@
 package com.swalla.campusdock.Activities;
 
-import android.animation.Animator;
 import android.app.Activity;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
-import android.os.Build;
+import android.content.IntentFilter;
 import android.os.Bundle;
 import android.os.Handler;
-import android.support.annotation.NonNull;
-import android.support.design.widget.BottomNavigationView;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentTransaction;
+import android.support.v4.content.LocalBroadcastManager;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
-import android.view.MenuItem;
 import android.view.View;
-import android.view.ViewAnimationUtils;
-import android.view.ViewTreeObserver;
-import android.view.animation.AccelerateInterpolator;
 import android.view.inputmethod.InputMethodManager;
 
-import com.google.firebase.messaging.FirebaseMessaging;
+import com.aurelhubert.ahbottomnavigation.AHBottomNavigation;
+import com.aurelhubert.ahbottomnavigation.AHBottomNavigationItem;
+import com.swalla.campusdock.Classes.Bulletin;
 import com.swalla.campusdock.Classes.Event;
 import com.swalla.campusdock.Fragments.BulletinFragment;
 import com.swalla.campusdock.Fragments.HomeFragment;
 import com.swalla.campusdock.Fragments.ProfileFragment;
 import com.swalla.campusdock.R;
+import com.swalla.campusdock.Utils.Config;
+import com.swalla.campusdock.Utils.NotiUtil;
 
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import static com.swalla.campusdock.Utils.Config.PUSH_NOTI;
+import static com.swalla.campusdock.Utils.Config.SHOW_NEW_BULLETIN;
+import static com.swalla.campusdock.Utils.Config.SHOW_NEW_EVENT;
+import static com.swalla.campusdock.Utils.Config.TYPE_BULLETIN;
 import static com.swalla.campusdock.Utils.Config.TYPE_EVENT;
 
 public class HomeActivity extends AppCompatActivity {
-    public static final String EXTRA_CIRCULAR_REVEAL_X = "EXTRA_CIRCULAR_REVEAL_X";
-    public static final String EXTRA_CIRCULAR_REVEAL_Y = "EXTRA_CIRCULAR_REVEAL_Y";
     private Fragment currentFragment;
-    View rootLayout;
+    private static AHBottomNavigation navigation;
+    private FragmentTransaction transaction;
+    private static String currentFragmentTag = HomeFragment.ID;
+    private boolean isOK = false;
+    private static int notifyPosition = -1;
+    private static int currentPos = 0;
 
-    private int revealX;
-    private int revealY;
-    private BottomNavigationView.OnNavigationItemSelectedListener mOnNavigationItemSelectedListener
-            = new BottomNavigationView.OnNavigationItemSelectedListener() {
-
+    private AHBottomNavigation.OnTabSelectedListener listener = new AHBottomNavigation.OnTabSelectedListener() {
         @Override
-        public boolean onNavigationItemSelected(@NonNull MenuItem item) {
-            switch (item.getItemId()) {
-                case R.id.navigation_upcoming:
-                    currentFragment = HomeFragment.newInstance(HomeActivity.this);
+        public boolean onTabSelected(int position, boolean wasSelected) {
+            currentPos = position;
+            switch(position){
+                case 0:
+                    currentFragment = HomeFragment.newInstance();
+                    currentFragmentTag = HomeFragment.ID;
                     break;
-
-                case R.id.navigation_history:
+                case 1 :
+                    currentFragment = BulletinFragment.newInstance();
+                    currentFragmentTag = BulletinFragment.ID;
                     break;
-
-                case R.id.navigation_interests:
-                    break;
-
-                case R.id.navigation_classroom:
-                    currentFragment = BulletinFragment.newInstance(HomeActivity.this);
-                    break;
-
-                case R.id.navigation_profile:
+                case 4:
                     currentFragment = ProfileFragment.newInstance();
+                    currentFragmentTag = ProfileFragment.ID;
                     break;
+            }
+            if(notifyPosition==position){
+                navigation.setNotification("",notifyPosition);
             }
             replaceFragment();
             return true;
         }
     };
 
+    @Override
+    public void onBackPressed() {
+        super.onBackPressed();
+        int count = getSupportFragmentManager().getBackStackEntryCount() -1; //top fragment
+        if(count < 0) {
+            setNavigationTab(HomeFragment.ID);
+        } else
+            setNavigationTab(getSupportFragmentManager().getBackStackEntryAt(count).getName());
+    }
+
+    private void setNavigationTab(String Id){
+        switch (Id){
+            case HomeFragment.ID :
+                navigation.setCurrentItem(0, false);
+                break;
+            case BulletinFragment.ID:
+                navigation.setCurrentItem(1, false);
+                break;
+            case ProfileFragment.ID:
+                navigation.setCurrentItem(4, false);
+                break;
+        }
+    }
+
     private void replaceFragment(){
         try {
             if (isOK) {
-                FragmentTransaction transaction = getSupportFragmentManager().beginTransaction();
-                transaction.replace(R.id.container, currentFragment).commit();
+                int count = getSupportFragmentManager().getBackStackEntryCount();
+                boolean legacyFragmentExists = false;
+                transaction = getSupportFragmentManager().beginTransaction();
+                for(int i=0; i<count; i++){
+                    if(currentFragmentTag.equals(getSupportFragmentManager().getBackStackEntryAt(i).getName())){
+                        legacyFragmentExists = true;
+                    }
+                }
+                if(legacyFragmentExists){
+                    getSupportFragmentManager().popBackStack(currentFragmentTag, 0);
+                }
+                else {
+                    transaction.replace(R.id.container, currentFragment, currentFragmentTag).addToBackStack(currentFragmentTag).commit();
+                }
                 hideKeyboard(HomeActivity.this);
             } else {
                 new Handler().post(new Runnable() {
                     @Override
                     public void run() {
-                        FragmentTransaction transaction = getSupportFragmentManager().beginTransaction();
+                        transaction = getSupportFragmentManager().beginTransaction();
                         transaction.replace(R.id.container, currentFragment).commit();
                     }
                 });
@@ -91,70 +126,79 @@ public class HomeActivity extends AppCompatActivity {
     }
 
     public static void hideKeyboard(Activity activity) {
-        final InputMethodManager inputManager = (InputMethodManager) activity.getSystemService(Context.INPUT_METHOD_SERVICE);
-        inputManager.hideSoftInputFromWindow(activity.getCurrentFocus().getWindowToken(), InputMethodManager.HIDE_NOT_ALWAYS);
+        View view = activity.getCurrentFocus();
+        if (view != null) {
+            InputMethodManager imm = (InputMethodManager)activity.getSystemService(Context.INPUT_METHOD_SERVICE);
+            imm.hideSoftInputFromWindow(view.getWindowToken(), 0);
+        }
     }
 
-    private boolean isOK = false;
     @Override
     protected void onPostResume() {
         super.onPostResume();
         isOK = true;
     }
 
-    public void setBadge(){
 
-    }
-
-    private BottomNavigationView navigation;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_home);
-        currentFragment = HomeFragment.newInstance(this);
-        final Intent intent=getIntent();
-        rootLayout=findViewById(R.id.activity_home);
-        if (savedInstanceState == null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP &&
-                intent.hasExtra(EXTRA_CIRCULAR_REVEAL_X) &&
-                intent.hasExtra(EXTRA_CIRCULAR_REVEAL_Y)) {
-            rootLayout.setVisibility(View.INVISIBLE);
-
-            revealX = intent.getIntExtra(EXTRA_CIRCULAR_REVEAL_X, 0);
-            revealY = intent.getIntExtra(EXTRA_CIRCULAR_REVEAL_Y, 0);
-
-
-            ViewTreeObserver viewTreeObserver = rootLayout.getViewTreeObserver();
-            if (viewTreeObserver.isAlive()) {
-                viewTreeObserver.addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
-                    @Override
-                    public void onGlobalLayout() {
-                        revealActivity(revealX, revealY);
-                        rootLayout.getViewTreeObserver().removeOnGlobalLayoutListener(this);
-                    }
-                });
-            }
-        } else {
-            rootLayout.setVisibility(View.VISIBLE);
-        }
+        currentFragment = HomeFragment.newInstance();
         navigation = findViewById(R.id.navigation);
-        navigation.setOnNavigationItemSelectedListener(mOnNavigationItemSelectedListener);
+        AHBottomNavigationItem item1 = new AHBottomNavigationItem("UpComing", R.drawable.ic_upcoming);
+        AHBottomNavigationItem item2 = new AHBottomNavigationItem("Bulletin", R.drawable.ic_school_black_24dp);
+        AHBottomNavigationItem item3 = new AHBottomNavigationItem("Discover", R.drawable.ic_hotdeals);
+        AHBottomNavigationItem item4 = new AHBottomNavigationItem("History", R.drawable.ic_change_history_black_24dp);
+        AHBottomNavigationItem item5 = new AHBottomNavigationItem("Profile", R.drawable.ic_profile);
+        navigation.addItem(item1);
+        navigation.addItem(item2);
+        navigation.addItem(item3);
+        navigation.addItem(item4);
+        navigation.addItem(item5);
+        navigation.setTitleState(AHBottomNavigation.TitleState.ALWAYS_HIDE);
+        navigation.setDefaultBackgroundColor(getResources().getColor(R.color.colorPrimary));
+        navigation.setAccentColor(getResources().getColor(R.color.pureWhite));
+        navigation.setInactiveColor(getResources().getColor(R.color.colorPrimaryDark));
+        navigation.setOnTabSelectedListener(listener);
         replaceFragment();
+        LocalBroadcastManager.getInstance(getApplicationContext()).registerReceiver(receiver, new IntentFilter(Config.NEW_UPDATE));
+        NotiUtil.clearNotifications(getApplicationContext());
     }
 
-    @Override
-    protected void onStart() {
-        super.onStart();
-        if (getIntent().getAction() != null
-                ) {
-            Log.d("App",getIntent().getAction());
+    public static void showNotification(int position){
+        if(currentPos==position){
+            navigation.setNotificationAnimationDuration(2000);
+        }
+        navigation.setNotification("*", position);
+        notifyPosition = position;
+    }
+
+    private void handleStart(){
+        if (getIntent().getAction() != null) {
             switch (getIntent().getAction()) {
-                case PUSH_NOTI :
+                case SHOW_NEW_EVENT :
                     try {
                         JSONObject obj = new JSONObject(getIntent().getExtras().getString(TYPE_EVENT));
-                        Event event = new Event(obj.getString("event_id"), obj.getString("name"), obj.getString("description").replace("\r\n", "<br>"), obj.getString("date"), obj.getString("organizer"), obj.getString("category"), obj.getString("url"), obj.getString("created_by"));
-                        HomeFragment fragment = HomeFragment.newInstance(HomeActivity.this);
+                        Event event = Event.parseFromJSON(obj);
+                        HomeFragment fragment = HomeFragment.newInstance();
                         fragment.setStartingEvent(event);
                         currentFragment = fragment;
+                        setNavigationTab(HomeFragment.ID);
+                        getIntent().setAction(null);
+                        replaceFragment();
+                    } catch (JSONException e) {
+                        e.printStackTrace();
+                    }
+                    break;
+                case SHOW_NEW_BULLETIN:
+                    try {
+                        JSONObject obj = new JSONObject(getIntent().getExtras().getString(TYPE_BULLETIN));
+                        Bulletin bulletin = Bulletin.parseFromJSON(obj);
+                        BulletinFragment fragment = BulletinFragment.newInstance();
+                        fragment.setStartingBulletin(bulletin);
+                        currentFragment = fragment;
+                        setNavigationTab(BulletinFragment.ID);
                         getIntent().setAction(null);
                         replaceFragment();
                     } catch (JSONException e) {
@@ -165,22 +209,37 @@ public class HomeActivity extends AppCompatActivity {
         }
     }
 
-    protected void revealActivity(int x, int y) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            float finalRadius = (float) (Math.max(rootLayout.getWidth(), rootLayout.getHeight()) );
-
-            // create the animator for this view (the start radius is zero)
-            Animator circularReveal = ViewAnimationUtils.createCircularReveal(rootLayout, x, y, 35, finalRadius);
-            circularReveal.setDuration(600);
-            circularReveal.setInterpolator(new AccelerateInterpolator());
-
-            // make the view visible and start the animation
-            rootLayout.setVisibility(View.VISIBLE);
-            circularReveal.start();
-        } else {
-            finish();
-        }
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if(getIntent()!=null)
+            handleStart();
     }
 
+    @Override
+    protected void onStart() {
+        super.onStart();
+        Log.d("App","Action:"+getIntent().getAction());
+        handleStart();
+    }
 
+    private BroadcastReceiver receiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            switch (intent.getStringExtra(Config.NEW_UPDATE)){
+                case Config.SHOW_NEW_EVENT:
+                    showNotification(0);
+                    break;
+                case Config.SHOW_NEW_BULLETIN:
+                    showNotification(1);
+                    break;
+            }
+        }
+    };
+
+    @Override
+    protected void onDestroy() {
+        LocalBroadcastManager.getInstance(this).unregisterReceiver(receiver);
+        super.onDestroy();
+    }
 }
