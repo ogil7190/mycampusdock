@@ -3,6 +3,7 @@ package com.swalla.campusdock.Utils;
 import android.content.Context;
 import android.util.LruCache;
 
+import com.android.volley.DefaultRetryPolicy;
 import com.android.volley.RequestQueue;
 import com.android.volley.toolbox.Volley;
 
@@ -17,8 +18,9 @@ public class LocalStore {
     private static RequestQueue networkQueue;
 
     public static RequestQueue getNetworkqueue(Context context){
-        if(networkQueue==null)
+        if(networkQueue==null) {
             networkQueue = Volley.newRequestQueue(context);
+        }
         return networkQueue;
     }
 

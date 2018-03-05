@@ -4,9 +4,6 @@ import android.animation.ObjectAnimator;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
-
-import com.swalla.campusdock.Classes.Bulletin;
-
 import android.support.v4.app.ActivityOptionsCompat;
 import android.support.v4.app.Fragment;
 import android.support.v4.view.ViewCompat;
@@ -19,10 +16,11 @@ import android.view.ViewGroup;
 
 import com.swalla.campusdock.Activities.BulletinActivity;
 import com.swalla.campusdock.Adapters.BulletinAdapter;
-import com.swalla.campusdock.listeners.RecyclerItemClickListener;
+import com.swalla.campusdock.Classes.Bulletin;
 import com.swalla.campusdock.Databases.DockDB;
 import com.swalla.campusdock.R;
 import com.swalla.campusdock.Utils.Config;
+import com.swalla.campusdock.listeners.RecyclerItemClickListener;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -30,17 +28,17 @@ import java.util.List;
 
 import static android.content.Context.MODE_PRIVATE;
 
-public class BulletinFragment extends Fragment {
-    public static final String ID = "BulletinFragment";
+public class HistoryFragment extends Fragment {
+    public static final String ID = "HistoryFragment";
     private RecyclerView recyclerView;
     private BulletinAdapter adapter;
     private List<Bulletin> bulletinList;
     private SharedPreferences pref;
 
-    public BulletinFragment() {}
+    public HistoryFragment() {}
 
-    public static BulletinFragment newInstance() {
-        BulletinFragment fragment = new BulletinFragment();
+    public static HistoryFragment newInstance() {
+        HistoryFragment fragment = new HistoryFragment();
         return fragment;
     }
 
@@ -56,7 +54,7 @@ public class BulletinFragment extends Fragment {
 
         Collections.reverse(bulletinList);
 
-        bulletinList.add(new Bulletin("@ogil","Demo Bulletin For Classes","This is my <b>demo Description </b><br><br>#OGIL7190","", "@dock", "2018-03-31T00:00:00.000Z", "2018-03-31T00:00:00.000Z"));
+        bulletinList.add(new Bulletin("@ogil","Demo Bulletin For Classes","This is my <b>demo Description </b><br><br>#OGIL7190","", "@dock", "21 JAN 2018", "21 JAN 2018"));
         adapter = new BulletinAdapter(getContext(), bulletinList);
 
         RecyclerView.LayoutManager mLayoutManager = new LinearLayoutManager(getContext());

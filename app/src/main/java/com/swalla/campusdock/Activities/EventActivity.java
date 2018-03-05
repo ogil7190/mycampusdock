@@ -12,7 +12,6 @@ import android.text.Html;
 import android.text.method.ScrollingMovementMethod;
 import android.util.Log;
 import android.view.LayoutInflater;
-import android.view.MotionEvent;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
@@ -20,6 +19,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.android.volley.AuthFailureError;
+import com.android.volley.DefaultRetryPolicy;
 import com.android.volley.Request;
 import com.android.volley.Response;
 import com.android.volley.VolleyError;
@@ -28,15 +28,18 @@ import com.bumptech.glide.Glide;
 import com.google.firebase.messaging.FirebaseMessaging;
 import com.swalla.campusdock.Classes.Event;
 import com.swalla.campusdock.Databases.DockDB;
+import com.swalla.campusdock.Fragments.EventFragment;
 import com.swalla.campusdock.R;
+import com.swalla.campusdock.Utils.Config;
 import com.swalla.campusdock.Utils.LocalStore;
 import com.swalla.campusdock.Utils.NotiUtil;
+import com.swalla.campusdock.Utils.Utils;
 
 import org.json.JSONException;
 import org.json.JSONObject;
-import org.w3c.dom.Text;
 
 import java.io.File;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -44,6 +47,7 @@ import es.dmoral.toasty.Toasty;
 
 import static com.swalla.campusdock.Utils.Config.PREF_NAME;
 import static com.swalla.campusdock.Utils.Config.PREF_USER_API_KEY;
+import static com.swalla.campusdock.Utils.Config.PREF_USER_CLASS;
 import static com.swalla.campusdock.Utils.Config.PREF_USER_ROLL;
 
 public class EventActivity extends AppCompatActivity  {
@@ -54,7 +58,6 @@ public class EventActivity extends AppCompatActivity  {
     private Event event;
     private TextView chipText;
     private Snackbar snackbar;
-
     private AlertDialog prompt;
 
     @Override
@@ -63,14 +66,11 @@ public class EventActivity extends AppCompatActivity  {
         setTheme(R.style.HolyBlack);
         setContentView(R.layout.activity_event);
         event = (Event) getIntent().getSerializableExtra("event");
-        event = DockDB.getIntsance(this).getEventDao().getEvent(event.getId());
+
         enroll = findViewById(R.id.enroll);
         if(event.isEnrolled()){
             enroll.setText("Successfully Enrolled");
             enroll.setBackground(getDrawable(R.drawable.input_round_disable));
-        }
-        if(event.getId().equals("@ogil")){
-            enroll.setEnabled(false);
         }
 
         enroll.setOnClickListener(new View.OnClickListener() {
@@ -105,7 +105,12 @@ public class EventActivity extends AppCompatActivity  {
         }
         cardDescription.setMovementMethod(new ScrollingMovementMethod());
         chipText.setText(event.getCreated_by());
-        cardDate.setText(event.getDate()+" - "+event.getEndDate());
+
+        Date date = Utils.fromISO8601UTC(event.getDate());
+        Date endDate = Utils.fromISO8601UTC(event.getEndDate());
+        String finalDate = date.getDate()+ " "+Utils.parseMonth(date.getMonth())+" - "+ endDate.getDate()+" "+Utils.parseMonth(endDate.getMonth());
+        cardDate.setText(finalDate);
+
         if(event.getUrl()!=null) {
             File folder = new File(Environment.getExternalStorageDirectory() + File.separator + "CampusDock");
             File f = new File(folder, event.getUrl());
@@ -128,6 +133,11 @@ public class EventActivity extends AppCompatActivity  {
             }
         });
         init();
+        if(event.getId().equals("@ogil")){
+            enroll.setEnabled(false);
+        }
+        else
+            checkSubscription(event.getId());
     }
 
     private void init(){
@@ -138,13 +148,58 @@ public class EventActivity extends AppCompatActivity  {
         TextView title = dialogView.findViewById(R.id.title);
         TextView message = dialogView.findViewById(R.id.message);
         title.setText("Please Wait...");
-        message.setText("Updating changes on server");
+        message.setText("Getting changes from server");
     }
 
     @Override
     public void onBackPressed() {
         enroll.setVisibility(View.GONE);
+        EventFragment.adapterDataUpdated();
         super.onBackPressed();
+    }
+
+    private void checkSubscription(final String event_id){
+        String url = "https://mycampusdock.herokuapp.com/mobile-app-interaction";
+        StringRequest stringRequest = new StringRequest(Request.Method.POST, url,
+                new Response.Listener<String>() {
+                    @Override
+                    public void onResponse(String response) {
+                        try {
+                            JSONObject obj = new JSONObject(response);
+                            if(!obj.getBoolean("error")){
+
+                            } else{
+                                Toasty.error(getApplicationContext(), "Something went wrong :(", Toast.LENGTH_LONG).show();
+                                enroll.setEnabled(false);
+
+                            }
+                        } catch (JSONException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                }, new Response.ErrorListener() {
+            @Override
+            public void onErrorResponse(VolleyError error) {
+                Log.d("App", error.toString());
+                Toasty.error(getApplicationContext(), "Try Again!", Toast.LENGTH_LONG).show();
+            }
+        }) {
+            @Override
+            protected Map<String, String> getParams() throws AuthFailureError {
+                Map<String, String> params = new HashMap<>();
+                params.put("roll", pref.getString(PREF_USER_ROLL, ""));
+                params.put("api", pref.getString(PREF_USER_API_KEY, ""));
+                params.put("class", pref.getString(PREF_USER_CLASS, ""));
+                params.put("type", ""+Config.REQ_CHECK_EVENT_SUSBCRIPTION);
+                params.put("event_id", event_id);
+                return params;
+            }
+        };
+        stringRequest.setRetryPolicy(new DefaultRetryPolicy(
+                10000,
+                DefaultRetryPolicy.DEFAULT_MAX_RETRIES,
+                DefaultRetryPolicy.DEFAULT_BACKOFF_MULT));
+        LocalStore.getNetworkqueue(this).add(stringRequest);
     }
 
     private void handleSubscription(final String eventId){
@@ -158,20 +213,21 @@ public class EventActivity extends AppCompatActivity  {
                         Log.d("App", "response:"+response);
                         try {
                             if (!new JSONObject(response).getBoolean("error")) {
-                                FirebaseMessaging.getInstance().subscribeToTopic(event.getId());
                                 if(event.isEnrolled())
                                     event.setEnrolled(false);
                                 else
                                     event.setEnrolled(true);
                                 enroll.setText(event.isEnrolled()?"Successfully Enrolled":"Click to Enroll");
-                                if(event.isEnrolled())
+                                if(event.isEnrolled()) {
                                     enroll.setBackground(getDrawable(R.drawable.input_round_disable));
-                                else
+                                    FirebaseMessaging.getInstance().unsubscribeFromTopic(event.getId());
+                                }
+                                else {
                                     enroll.setBackground(getDrawable(R.drawable.input_round_color));
-
+                                    FirebaseMessaging.getInstance().subscribeToTopic(event.getId());
+                                }
                                 DockDB.getIntsance(getApplicationContext()).getEventDao().update(event);
                                 prompt.dismiss();
-                                Toasty.normal(getApplicationContext(),"Success!", Toast.LENGTH_SHORT).show();
                             }
                         } catch (JSONException e){
                             e.printStackTrace();
@@ -193,10 +249,14 @@ public class EventActivity extends AppCompatActivity  {
                 params.put("roll", pref.getString(PREF_USER_ROLL, ""));
                 params.put("api", pref.getString(PREF_USER_API_KEY, ""));
                 params.put("event_id", eventId);
-                params.put("flag", event.isEnrolled() ? ""+107 : ""+101);
+                params.put("flag", event.isEnrolled() ? ""+ Config.REQ_WITHDRAW : ""+Config.REQ_ENROLL);
                 return params;
             }
         };
+        stringRequest.setRetryPolicy(new DefaultRetryPolicy(
+                10000,
+                DefaultRetryPolicy.DEFAULT_MAX_RETRIES,
+                DefaultRetryPolicy.DEFAULT_BACKOFF_MULT));
         LocalStore.getNetworkqueue(this).add(stringRequest);
     }
 

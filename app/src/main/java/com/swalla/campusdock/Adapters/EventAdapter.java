@@ -1,11 +1,8 @@
 package com.swalla.campusdock.Adapters;
 
 import android.content.Context;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.os.Environment;
 import android.support.v7.widget.RecyclerView;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -15,11 +12,11 @@ import android.widget.TextView;
 import com.bumptech.glide.Glide;
 import com.swalla.campusdock.Classes.Event;
 import com.swalla.campusdock.R;
-import com.swalla.campusdock.Utils.Config;
 import com.swalla.campusdock.Utils.NotiUtil;
+import com.swalla.campusdock.Utils.Utils;
 
 import java.io.File;
-import java.io.FileInputStream;
+import java.util.Date;
 import java.util.List;
 
 /**
@@ -35,6 +32,7 @@ public class EventAdapter extends RecyclerView.Adapter<EventAdapter.EventViewHol
         private TextView title, date;
         private ImageView banner;
         private TextView chipText;
+        private TextView updatedFlag;
 
         public EventViewHolder(View view) {
             super(view);
@@ -42,6 +40,7 @@ public class EventAdapter extends RecyclerView.Adapter<EventAdapter.EventViewHol
             date = view.findViewById(R.id.card_date);
             banner = view.findViewById(R.id.card_image);
             chipText = view.findViewById(R.id.chipText);
+            updatedFlag = view.findViewById(R.id.updatedFlag);
         }
     }
 
@@ -60,9 +59,14 @@ public class EventAdapter extends RecyclerView.Adapter<EventAdapter.EventViewHol
     public void onBindViewHolder(final EventViewHolder holder, int position) {
         final Event currentEvent = eventList.get(position);
         holder.title.setText(currentEvent.getEventName());
-        holder.date.setText(currentEvent.getDate()+" - "+currentEvent.getEndDate());
+        Date date = Utils.fromISO8601UTC(currentEvent.getDate());
+        Date endDate = Utils.fromISO8601UTC(currentEvent.getEndDate());
+        String finalDate = date.getDate()+ " "+Utils.parseMonth(date.getMonth())+" - "+ endDate.getDate()+" "+Utils.parseMonth(endDate.getMonth());
+        holder.date.setText(finalDate);
         holder.chipText.setText(currentEvent.getCreated_by());
-
+        if(currentEvent.isUpdated()){
+            holder.updatedFlag.setVisibility(View.VISIBLE);
+        }
         if(currentEvent.getUrl() == null) {
             holder.banner.setImageResource(R.drawable.test_poster);
         }

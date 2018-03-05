@@ -40,12 +40,29 @@
                 android:layout_below="@id/card_image"
                 android:gravity="center_vertical"
                 android:paddingLeft="5dp"
+                android:layout_toStartOf="@+id/updatedFlag"
                 android:layout_marginLeft="5dp"
                 android:singleLine="true"
                 android:ellipsize="marquee"
                 android:textStyle="bold"
                 android:text="This is the Game"
                 android:textSize="18dp" />
+            <TextView
+                android:id="@+id/updatedFlag"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginRight="5dp"
+                android:layout_alignParentEnd="true"
+                android:layout_below="@id/card_image"
+                android:gravity="center_vertical"
+                android:paddingLeft="5dp"
+                android:singleLine="true"
+                android:textStyle="bold"
+                android:paddingEnd="2dp"
+                android:visibility="gone"
+                android:textColor="@color/colorAccent"
+                android:text="*"
+                android:textSize="28dp" />
 
             <RelativeLayout
                 android:layout_marginLeft="5dp"

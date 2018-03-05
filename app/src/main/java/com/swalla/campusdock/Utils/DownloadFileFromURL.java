@@ -6,6 +6,8 @@ import android.util.Log;
 import android.view.View;
 import android.widget.ProgressBar;
 
+import com.swalla.campusdock.listeners.OnFileDownloadCompleteListener;
+
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -15,7 +17,6 @@ import java.net.URL;
 import java.net.URLConnection;
 
 import static com.swalla.campusdock.Utils.Config.BASE_CLASS_URL;
-import static com.swalla.campusdock.Utils.Config.BASE_URL;
 
 /**
  * Created by ogil on 03/03/18.

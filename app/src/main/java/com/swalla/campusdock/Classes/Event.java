@@ -42,6 +42,12 @@ public class Event implements Serializable {
     @ColumnInfo(name = "enrolled")
     private boolean enrolled;
 
+    @ColumnInfo(name = "isUpdated")
+    private boolean isUpdated;
+
+    @ColumnInfo(name = "tags")
+    private String tags;
+
     public Event(){}
 
     public String getCreated_by() {
@@ -52,14 +58,15 @@ public class Event implements Serializable {
         this.created_by = created_by;
     }
 
-    public Event(String id, String name, String description, String date, String endDate, String url, String created_by) {
+    public Event(String id, String name, String description, String date, String endDate, String url, String tags, String created_by) {
         this.id = id;
         this.eventName = name;
         this.description = description;
-        this.date = date.substring(0, 6);
-        this.endDate = endDate.substring(0, 6);
+        this.date = date;
+        this.endDate = endDate;
         this.url = url;
         this.created_by = created_by;
+        this.tags = tags;
     }
 
     public void setEnrolled(boolean enrolled) {
@@ -67,10 +74,8 @@ public class Event implements Serializable {
     }
 
     public boolean isEnrolled() {
-
         return enrolled;
     }
-
 
     public void setUrl(String url) {
         this.url = url;
@@ -116,26 +121,41 @@ public class Event implements Serializable {
         return endDate;
     }
 
+    public void setUpdated(boolean updated) {
+        isUpdated = updated;
+    }
+
+    public boolean isUpdated() {
+        return isUpdated;
+    }
+
     public void setEndDate(String endDate) {
         this.endDate = endDate;
     }
 
     public static Event parseFromJSON(JSONObject obj) throws JSONException{
-        return new Event(obj.getString("event_id"), obj.getString("name"), obj.getString("description").replace("\r\n", "<br>"), obj.getString("date"), obj.getString("endDate"), obj.getString("url"), obj.getString("created_by"));
+        return new Event(obj.getString("event_id"), obj.getString("name"), obj.getString("description").replace("\r\n", "<br>"), obj.getString("event_start_std"), obj.getString("event_end_std"), obj.getString("url"), obj.getJSONArray("tags").join(","), obj.getString("created_by"));
+    }
+
+    public void setTags(String tags) {
+        this.tags = tags;
+    }
+
+    public String getTags() {
+        return tags;
     }
 
     public Event updateEvent(JSONObject obj) throws JSONException{
-        this.eventName = this.eventName + " ● ";
+        this.isUpdated = true;
         this.description = obj.getString("event_description").replace("\r\n", "<br>");
-        this.date = obj.getString("event_start_date").substring(0, 6);
-        this.endDate = obj.getString("event_end_date").substring(0, 6);
+        this.date = obj.getString("event_start_std");
+        this.endDate = obj.getString("event_end_std");
         try {
             this.url = obj.getString("event_image_url");
             NotiUtil.getBitmapFromURL(this.url);
-        } catch(Exception e){
-
+        }catch(Exception e){
+            e.printStackTrace();
         }
         return this;
     }
-
 }

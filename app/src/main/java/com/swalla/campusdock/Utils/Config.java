@@ -5,8 +5,18 @@ package com.swalla.campusdock.Utils;
  */
 
 public class Config {
+    public static final int REQ_ENROLL = 101;
+    public static final int REQ_REACH_EVENT = 103;
+    public static final int REQ_REACH_BULLETIN = 105;
+    public static final int REQ_WITHDRAW = 107;
+
+    public static final int REQ_FETCH_EVENT = 101;
+    public static final int REQ_CHECK_EVENT_SUSBCRIPTION = 102;
+
     public static final String PREF_NAME = "CampusDockProfile";
     public static final String PREF_REG_ID_KEY = "regId";
+
+    public static final String DATA_FETCHED = "dataFetched";
 
     public static final String REG_COMPLETE = "RegistrationDone";
 
@@ -18,6 +28,7 @@ public class Config {
     public static final String PREF_USER_NAME = "user_name";
     public static final String PREF_USER_ROLL = "user_roll";
     public static final String PREF_USER_EMAIL = "user_email";
+    public static final String PREF_USER_CLASS = "user_class";
     public static final String PREF_USER_PHONE = "user_phone";
     public static final String PREF_USER_SUBSCRIPTIONS = "user_subscriptions";
     public static final String PREF_USER_IS_LOGGED_IN = "userLoggedIn";

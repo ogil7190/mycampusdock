@@ -11,6 +11,7 @@ import android.view.View;
 import android.widget.Toast;
 
 import com.android.volley.AuthFailureError;
+import com.android.volley.DefaultRetryPolicy;
 import com.android.volley.Request;
 import com.android.volley.Response;
 import com.android.volley.VolleyError;
@@ -95,7 +96,7 @@ public class CustomFirebaseMessagingService extends FirebaseMessagingService {
                 Log.e(TAG, "timestamp: " + timestamp);
 
                 if(pref.getBoolean(PREF_USER_IS_LOGGED_IN, false)) {
-                    accountReach(payload.getString("event_id"), ""+103);
+                    accountReach(payload.getString("event_id"), ""+Config.REQ_REACH_EVENT);
                     DockDB.getIntsance(getApplicationContext()).getEventDao().insert(Event.parseFromJSON(payload));
                     if (!NotiUtil.isAppIsInBackground(getApplicationContext())) {
                         NotiUtil notificationUtils = new NotiUtil(getApplicationContext());
@@ -140,7 +141,7 @@ public class CustomFirebaseMessagingService extends FirebaseMessagingService {
                 Log.e(TAG, "timestamp: " + noti_bullet_timestamp);
 
                 if(pref.getBoolean(PREF_USER_IS_LOGGED_IN, false)) {
-                    accountReach(payload.getString("bulletin_id"), ""+105);
+                    accountReach(payload.getString("bulletin_id"), ""+Config.REQ_REACH_BULLETIN);
                     DockDB.getIntsance(getApplicationContext()).getBulletinDao().insert(Bulletin.parseFromJSON(payload));
                     if (!NotiUtil.isAppIsInBackground(getApplicationContext())) {
                         Intent notify = new Intent(Config.NEW_UPDATE);
@@ -186,6 +187,10 @@ public class CustomFirebaseMessagingService extends FirebaseMessagingService {
                 return params;
             }
         };
+        stringRequest.setRetryPolicy(new DefaultRetryPolicy(
+                10000,
+                DefaultRetryPolicy.DEFAULT_MAX_RETRIES,
+                DefaultRetryPolicy.DEFAULT_BACKOFF_MULT));
         LocalStore.getNetworkqueue(this).add(stringRequest);
     }
 

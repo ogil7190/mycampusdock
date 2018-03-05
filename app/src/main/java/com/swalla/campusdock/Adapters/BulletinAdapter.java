@@ -1,6 +1,7 @@
 package com.swalla.campusdock.Adapters;
 import com.swalla.campusdock.Classes.Bulletin;
 import com.swalla.campusdock.R;
+import com.swalla.campusdock.Utils.Utils;
 
 import android.content.Context;
 import android.support.v7.widget.RecyclerView;
@@ -13,6 +14,10 @@ import android.widget.TextView;
 
 import org.w3c.dom.Text;
 
+import java.text.DateFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.List;
 
 /**
@@ -54,7 +59,9 @@ public class BulletinAdapter extends RecyclerView.Adapter<BulletinAdapter.ClassV
         final Bulletin currentBulletin = bulletinList.get(position);
         holder.title.setText(currentBulletin.getBulletinName());
         holder.chipText.setText(currentBulletin.getCreated_by());
-        holder.date.setText(currentBulletin.getCreated_on());
+        Date date = Utils.fromISO8601UTC(currentBulletin.getCreated_on());
+        String finalDate = date.getDate()+ " "+Utils.parseMonth(date.getMonth())+" "+ (1900 + date.getYear());
+        holder.date.setText(finalDate);
         if(currentBulletin.getFiles().length()==0){
             holder.indicator.setVisibility(View.GONE);
         }

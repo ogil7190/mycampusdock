@@ -37,6 +37,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.android.volley.AuthFailureError;
+import com.android.volley.DefaultRetryPolicy;
 import com.android.volley.Request;
 import com.android.volley.RequestQueue;
 import com.android.volley.Response;
@@ -61,6 +62,7 @@ import es.dmoral.toasty.Toasty;
 import static com.swalla.campusdock.Utils.Config.PREF_NAME;
 import static com.swalla.campusdock.Utils.Config.PREF_REG_ID_KEY;
 import static com.swalla.campusdock.Utils.Config.PREF_USER_API_KEY;
+import static com.swalla.campusdock.Utils.Config.PREF_USER_CLASS;
 import static com.swalla.campusdock.Utils.Config.PREF_USER_EMAIL;
 import static com.swalla.campusdock.Utils.Config.PREF_USER_IS_LOGGED_IN;
 import static com.swalla.campusdock.Utils.Config.PREF_USER_NAME;
@@ -228,6 +230,10 @@ public class Registration extends AppCompatActivity {
                 return params;
             }
         };
+        stringRequest.setRetryPolicy(new DefaultRetryPolicy(
+                10000,
+                DefaultRetryPolicy.DEFAULT_MAX_RETRIES,
+                DefaultRetryPolicy.DEFAULT_BACKOFF_MULT));
         LocalStore.getNetworkqueue(this).add(stringRequest);
     }
 
@@ -239,6 +245,7 @@ public class Registration extends AppCompatActivity {
         editor.putBoolean(PREF_USER_IS_LOGGED_IN, true);
         editor.putString(PREF_USER_API_KEY, obj.getString("api"));
         editor.putString(PREF_USER_EMAIL, obj.getString("email"));
+        editor.putString(PREF_USER_CLASS, obj.getString("class"));
         editor.apply();
         subscribe(obj.getJSONObject("subscriptions"));
         registrationDone();

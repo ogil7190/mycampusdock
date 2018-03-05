@@ -47,8 +47,8 @@ public class Bulletin implements Serializable{
         this.bulletinDescription = bulletinDescription;
         this.files = files;
         this.created_by = created_by;
-        this.created_on = created_on.substring(0,10);
-        this.expires_on = expires_on.substring(0,10);
+        this.created_on = created_on;
+        this.expires_on = expires_on;
     }
 
     public static Bulletin parseFromJSON(JSONObject obj) throws JSONException{

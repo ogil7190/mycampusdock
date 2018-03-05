@@ -17,11 +17,11 @@ import android.widget.Toast;
 
 import com.swalla.campusdock.Adapters.BulletinFileAdapter;
 import com.swalla.campusdock.Classes.Bulletin;
-import com.swalla.campusdock.Classes.RecyclerItemClickListener;
+import com.swalla.campusdock.listeners.RecyclerItemClickListener;
 import com.swalla.campusdock.R;
 import com.swalla.campusdock.Utils.Config;
 import com.swalla.campusdock.Utils.DownloadFileFromURL;
-import com.swalla.campusdock.Utils.OnFileDownloadCompleteListener;
+import com.swalla.campusdock.listeners.OnFileDownloadCompleteListener;
 
 import es.dmoral.toasty.Toasty;
 

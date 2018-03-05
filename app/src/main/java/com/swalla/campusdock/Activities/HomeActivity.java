@@ -5,6 +5,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.os.Handler;
 import android.support.v4.app.Fragment;
@@ -14,21 +15,38 @@ import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.View;
 import android.view.inputmethod.InputMethodManager;
+import android.widget.Toast;
 
+import com.android.volley.AuthFailureError;
+import com.android.volley.DefaultRetryPolicy;
+import com.android.volley.Request;
+import com.android.volley.Response;
+import com.android.volley.VolleyError;
+import com.android.volley.toolbox.StringRequest;
 import com.aurelhubert.ahbottomnavigation.AHBottomNavigation;
 import com.aurelhubert.ahbottomnavigation.AHBottomNavigationItem;
 import com.swalla.campusdock.Classes.Bulletin;
 import com.swalla.campusdock.Classes.Event;
 import com.swalla.campusdock.Fragments.BulletinFragment;
-import com.swalla.campusdock.Fragments.HomeFragment;
+import com.swalla.campusdock.Fragments.EventFragment;
 import com.swalla.campusdock.Fragments.ProfileFragment;
 import com.swalla.campusdock.R;
 import com.swalla.campusdock.Utils.Config;
+import com.swalla.campusdock.Utils.LocalStore;
 import com.swalla.campusdock.Utils.NotiUtil;
 
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.util.HashMap;
+import java.util.Map;
+
+import es.dmoral.toasty.Toasty;
+
+import static com.swalla.campusdock.Utils.Config.PREF_NAME;
+import static com.swalla.campusdock.Utils.Config.PREF_USER_API_KEY;
+import static com.swalla.campusdock.Utils.Config.PREF_USER_CLASS;
+import static com.swalla.campusdock.Utils.Config.PREF_USER_ROLL;
 import static com.swalla.campusdock.Utils.Config.SHOW_NEW_BULLETIN;
 import static com.swalla.campusdock.Utils.Config.SHOW_NEW_EVENT;
 import static com.swalla.campusdock.Utils.Config.TYPE_BULLETIN;
@@ -38,10 +56,11 @@ public class HomeActivity extends AppCompatActivity {
     private Fragment currentFragment;
     private static AHBottomNavigation navigation;
     private FragmentTransaction transaction;
-    private static String currentFragmentTag = HomeFragment.ID;
+    private static String currentFragmentTag = EventFragment.ID;
     private boolean isOK = false;
     private static int notifyPosition = -1;
     private static int currentPos = 0;
+    private SharedPreferences pref;
 
     private AHBottomNavigation.OnTabSelectedListener listener = new AHBottomNavigation.OnTabSelectedListener() {
         @Override
@@ -49,8 +68,8 @@ public class HomeActivity extends AppCompatActivity {
             currentPos = position;
             switch(position){
                 case 0:
-                    currentFragment = HomeFragment.newInstance();
-                    currentFragmentTag = HomeFragment.ID;
+                    currentFragment = EventFragment.newInstance();
+                    currentFragmentTag = EventFragment.ID;
                     break;
                 case 1 :
                     currentFragment = BulletinFragment.newInstance();
@@ -61,7 +80,7 @@ public class HomeActivity extends AppCompatActivity {
                     currentFragmentTag = ProfileFragment.ID;
                     break;
             }
-            if(notifyPosition==position){
+            if(notifyPosition == position){
                 navigation.setNotification("",notifyPosition);
             }
             replaceFragment();
@@ -74,14 +93,14 @@ public class HomeActivity extends AppCompatActivity {
         super.onBackPressed();
         int count = getSupportFragmentManager().getBackStackEntryCount() -1; //top fragment
         if(count < 0) {
-            setNavigationTab(HomeFragment.ID);
+            setNavigationTab(EventFragment.ID);
         } else
             setNavigationTab(getSupportFragmentManager().getBackStackEntryAt(count).getName());
     }
 
     private void setNavigationTab(String Id){
         switch (Id){
-            case HomeFragment.ID :
+            case EventFragment.ID :
                 navigation.setCurrentItem(0, false);
                 break;
             case BulletinFragment.ID:
@@ -144,7 +163,8 @@ public class HomeActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_home);
-        currentFragment = HomeFragment.newInstance();
+        pref = getSharedPreferences(PREF_NAME, MODE_PRIVATE);
+        currentFragment = EventFragment.newInstance();
         navigation = findViewById(R.id.navigation);
         AHBottomNavigationItem item1 = new AHBottomNavigationItem("UpComing", R.drawable.ic_upcoming);
         AHBottomNavigationItem item2 = new AHBottomNavigationItem("Bulletin", R.drawable.ic_school_black_24dp);
@@ -164,6 +184,41 @@ public class HomeActivity extends AppCompatActivity {
         replaceFragment();
         LocalBroadcastManager.getInstance(getApplicationContext()).registerReceiver(receiver, new IntentFilter(Config.NEW_UPDATE));
         NotiUtil.clearNotifications(getApplicationContext());
+        if(!pref.getBoolean(Config.DATA_FETCHED, false)){
+            fetchUserData();
+        }
+    }
+
+    private void fetchUserData(){
+        String url = "https://mycampusdock.herokuapp.com/mobile-app-interaction";
+        StringRequest stringRequest = new StringRequest(Request.Method.POST, url,
+                new Response.Listener<String>() {
+                    @Override
+                    public void onResponse(String response) {
+                        Log.d("App", "ResponseHome:" + response);
+                    }
+                }, new Response.ErrorListener() {
+            @Override
+            public void onErrorResponse(VolleyError error) {
+                Log.d("App", error.toString());
+                Toasty.error(getApplicationContext(), "Try Again!", Toast.LENGTH_LONG).show();
+            }
+        }) {
+            @Override
+            protected Map<String, String> getParams() throws AuthFailureError {
+                Map<String, String> params = new HashMap<>();
+                params.put("roll", pref.getString(PREF_USER_ROLL, ""));
+                params.put("api", pref.getString(PREF_USER_API_KEY, ""));
+                params.put("class", pref.getString(PREF_USER_CLASS, ""));
+                params.put("type", ""+Config.REQ_FETCH_EVENT);
+                return params;
+            }
+        };
+        stringRequest.setRetryPolicy(new DefaultRetryPolicy(
+                10000,
+                DefaultRetryPolicy.DEFAULT_MAX_RETRIES,
+                DefaultRetryPolicy.DEFAULT_BACKOFF_MULT));
+        LocalStore.getNetworkqueue(this).add(stringRequest);
     }
 
     public static void showNotification(int position){
@@ -181,10 +236,10 @@ public class HomeActivity extends AppCompatActivity {
                     try {
                         JSONObject obj = new JSONObject(getIntent().getExtras().getString(TYPE_EVENT));
                         Event event = Event.parseFromJSON(obj);
-                        HomeFragment fragment = HomeFragment.newInstance();
+                        EventFragment fragment = EventFragment.newInstance();
                         fragment.setStartingEvent(event);
                         currentFragment = fragment;
-                        setNavigationTab(HomeFragment.ID);
+                        setNavigationTab(EventFragment.ID);
                         getIntent().setAction(null);
                         replaceFragment();
                     } catch (JSONException e) {
