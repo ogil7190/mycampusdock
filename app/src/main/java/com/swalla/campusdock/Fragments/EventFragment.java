@@ -53,7 +53,7 @@ public class EventFragment extends Fragment {
 
         Collections.reverse(eventList);
 
-        Event demo = new Event("@ogil", "CS: GO LAN Gaming","Show your <b>Gaming skills</b> in popular CS Go game!<br> Compete with other players <br><br><u>Follow us on Instagram</u> <br> <b>#OGIL7190</b> ","2018-03-25T00:00:00.000Z","2018-03-31T00:00:00.000Z", null, "fun","@Dock");
+        Event demo = new Event("@ogil", "Career Expo 2018","The <b>Careers Expo</b> is your chance to discuss employment opportunities with organisations interested in UNSW graduates.<br><br><u>Follow us on Instagram</u> <br> <b>#EXPO2018</b> ","2018-03-25T00:00:00.000Z","2018-03-31T00:00:00.000Z", null, "fun","@Dock");
         demo.setEnrolled(true);
         eventList.add(demo);
         adapter = new EventAdapter(getContext(), eventList);

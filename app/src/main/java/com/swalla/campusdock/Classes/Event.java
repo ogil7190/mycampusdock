@@ -134,7 +134,7 @@ public class Event implements Serializable {
     }
 
     public static Event parseFromJSON(JSONObject obj) throws JSONException{
-        return new Event(obj.getString("event_id"), obj.getString("name"), obj.getString("description").replace("\r\n", "<br>"), obj.getString("event_start_std"), obj.getString("event_end_std"), obj.getString("url"), obj.getJSONArray("tags").join(","), obj.getString("created_by"));
+        return new Event(obj.getString("event_id"), obj.getString("name"), obj.getString("description").replace("\r\n", "<br>"), obj.getString("event_start_std"), obj.getString("event_end_std"), obj.getString("url"), obj.getString("subjects"), obj.getString("created_by"));
     }
 
     public void setTags(String tags) {

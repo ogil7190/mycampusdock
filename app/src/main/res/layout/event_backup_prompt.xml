@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<android.support.v7.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:card_view="http://schemas.android.com/apk/res-auto"
+    android:elevation="7dp"
+    android:layout_margin="5dp"
+    android:background="#00ffffff"
+    card_view:cardCornerRadius="6dp"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content">
+<RelativeLayout
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+    <TextView
+        android:padding="10dp"
+        android:textAlignment="center"
+        android:background="@color/colorPrimaryDark"
+        android:id="@+id/title"
+        android:text="Prompt Title"
+        android:textColor="@color/pureWhite"
+        android:textSize="25dp"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content" />
+
+    <TextView
+        android:padding="10dp"
+        android:layout_below="@id/title"
+        android:textAlignment="center"
+        android:background="@color/colorPrimaryDark"
+        android:id="@+id/message"
+        android:text="This is the message here"
+        android:textColor="@color/pureWhite"
+        android:textSize="16dp"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content" />
+    <LinearLayout
+        android:id="@+id/handles"
+        android:layout_marginBottom="5dp"
+        android:layout_marginTop="5dp"
+        android:layout_below="@+id/message"
+        android:orientation="horizontal"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <Button
+            android:id="@+id/yes"
+            android:text="Yes Restore"
+            android:layout_margin="5dp"
+            android:layout_weight="1"
+            android:layout_width="0dp"
+            android:background="@drawable/input_round_color"
+            android:layout_height="wrap_content" />
+
+        <Button
+            android:id="@+id/no"
+            android:layout_margin="5dp"
+            android:text="Skip Backup"
+            android:layout_weight="1"
+            android:layout_width="0dp"
+            android:background="@drawable/input_round_disable"
+            android:layout_height="wrap_content" />
+
+    </LinearLayout>
+</RelativeLayout>
+</android.support.v7.widget.CardView>

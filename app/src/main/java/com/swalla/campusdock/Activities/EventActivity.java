@@ -66,12 +66,12 @@ public class EventActivity extends AppCompatActivity  {
         setTheme(R.style.HolyBlack);
         setContentView(R.layout.activity_event);
         event = (Event) getIntent().getSerializableExtra("event");
-
+        pref = getSharedPreferences(PREF_NAME, MODE_PRIVATE);
         enroll = findViewById(R.id.enroll);
-        if(event.isEnrolled()){
-            enroll.setText("Successfully Enrolled");
-            enroll.setBackground(getDrawable(R.drawable.input_round_disable));
-        }
+
+        enroll.setText("Loading...");
+        enroll.setBackground(getDrawable(R.drawable.input_round_disable));
+        enroll.setEnabled(false);
 
         enroll.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -89,6 +89,7 @@ public class EventActivity extends AppCompatActivity  {
             }).setActionTextColor(getResources().getColor(R.color.colorAccent)).show();
             }
         });
+
         chipText = findViewById(R.id.chipText);
         cardImage = findViewById(R.id.card_image);
         cardTitle = findViewById(R.id.card_title);
@@ -134,6 +135,7 @@ public class EventActivity extends AppCompatActivity  {
         });
         init();
         if(event.getId().equals("@ogil")){
+            enroll.setText("Successfully Enrolled");
             enroll.setEnabled(false);
         }
         else
@@ -167,21 +169,36 @@ public class EventActivity extends AppCompatActivity  {
                         try {
                             JSONObject obj = new JSONObject(response);
                             if(!obj.getBoolean("error")){
+                                if(obj.getBoolean("data")){
+                                    event.setEnrolled(true);
+                                }
+                                 else
+                                     event.setEnrolled(false);
 
-                            } else{
-                                Toasty.error(getApplicationContext(), "Something went wrong :(", Toast.LENGTH_LONG).show();
-                                enroll.setEnabled(false);
-
+                                enroll.setText(event.isEnrolled()?"Successfully Enrolled":"Click to Enroll");
+                                if(event.isEnrolled()) {
+                                    enroll.setBackground(getDrawable(R.drawable.input_round_disable));
+                                    FirebaseMessaging.getInstance().subscribeToTopic(event.getId());
+                                }
+                                else {
+                                    enroll.setBackground(getDrawable(R.drawable.input_round_color));
+                                    FirebaseMessaging.getInstance().unsubscribeFromTopic(event.getId());
+                                }
+                                enroll.setEnabled(true);
+                                DockDB.getIntsance(getApplicationContext()).getEventDao().update(event);
+                            } else {
+                                Toasty.error(getApplicationContext(), "Something went wrong on fetching subscription:(", Toast.LENGTH_LONG).show();
                             }
                         } catch (JSONException e) {
                             e.printStackTrace();
+                            Toasty.error(getApplicationContext(), "Something went wrong :(", Toast.LENGTH_LONG).show();
                         }
                     }
                 }, new Response.ErrorListener() {
             @Override
             public void onErrorResponse(VolleyError error) {
                 Log.d("App", error.toString());
-                Toasty.error(getApplicationContext(), "Try Again!", Toast.LENGTH_LONG).show();
+                Toasty.error(getApplicationContext(), "Try Again later!", Toast.LENGTH_LONG).show();
             }
         }) {
             @Override
@@ -220,19 +237,21 @@ public class EventActivity extends AppCompatActivity  {
                                 enroll.setText(event.isEnrolled()?"Successfully Enrolled":"Click to Enroll");
                                 if(event.isEnrolled()) {
                                     enroll.setBackground(getDrawable(R.drawable.input_round_disable));
-                                    FirebaseMessaging.getInstance().unsubscribeFromTopic(event.getId());
+                                    FirebaseMessaging.getInstance().subscribeToTopic(event.getId());
                                 }
                                 else {
                                     enroll.setBackground(getDrawable(R.drawable.input_round_color));
-                                    FirebaseMessaging.getInstance().subscribeToTopic(event.getId());
+                                    FirebaseMessaging.getInstance().unsubscribeFromTopic(event.getId());
                                 }
                                 DockDB.getIntsance(getApplicationContext()).getEventDao().update(event);
                                 prompt.dismiss();
+                            } else{
+
                             }
                         } catch (JSONException e){
                             e.printStackTrace();
                             prompt.dismiss();
-                            Toasty.normal(getApplicationContext(),"Something went wrong!", Toast.LENGTH_SHORT).show();
+                            Toasty.normal(getApplicationContext(),"Something went wrong :(", Toast.LENGTH_SHORT).show();
                         }
                     }
                 }, new Response.ErrorListener() {
@@ -240,7 +259,7 @@ public class EventActivity extends AppCompatActivity  {
             public void onErrorResponse(VolleyError error) {
                 Log.d("App", error.toString());
                 prompt.dismiss();
-                Toasty.normal(getApplicationContext(),"Something went wrong!", Toast.LENGTH_SHORT).show();
+                Toasty.normal(getApplicationContext(),"Something went wrong :(", Toast.LENGTH_SHORT).show();
             }
         }) {
             @Override
@@ -253,6 +272,7 @@ public class EventActivity extends AppCompatActivity  {
                 return params;
             }
         };
+
         stringRequest.setRetryPolicy(new DefaultRetryPolicy(
                 10000,
                 DefaultRetryPolicy.DEFAULT_MAX_RETRIES,

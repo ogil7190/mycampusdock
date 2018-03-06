@@ -21,6 +21,7 @@ import com.google.firebase.messaging.RemoteMessage;
 import com.swalla.campusdock.Activities.HomeActivity;
 import com.swalla.campusdock.Classes.Bulletin;
 import com.swalla.campusdock.Classes.Event;
+import com.swalla.campusdock.Fragments.EventFragment;
 import com.swalla.campusdock.Utils.Config;
 import com.swalla.campusdock.Databases.DockDB;
 import com.swalla.campusdock.Utils.LocalStore;

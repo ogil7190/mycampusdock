@@ -94,4 +94,14 @@ public class DownloadFileFromURL extends AsyncTask<String, String, String> {
         else
             return false;
     }
+
+    public static File fileUrl(String localFile){
+        File folder = new File(Environment.getExternalStorageDirectory() + File.separator + "CampusDock");
+        folder = new File(folder, localFile);
+        if(folder.exists()){
+            return folder;
+        }
+        else
+            return null;
+    }
 }

@@ -11,10 +11,15 @@ import android.os.Handler;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentTransaction;
 import android.support.v4.content.LocalBroadcastManager;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
+import android.view.LayoutInflater;
 import android.view.View;
 import android.view.inputmethod.InputMethodManager;
+import android.widget.Button;
+import android.widget.ProgressBar;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.android.volley.AuthFailureError;
@@ -35,6 +40,7 @@ import com.swalla.campusdock.Utils.Config;
 import com.swalla.campusdock.Utils.LocalStore;
 import com.swalla.campusdock.Utils.NotiUtil;
 
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -43,6 +49,7 @@ import java.util.Map;
 
 import es.dmoral.toasty.Toasty;
 
+import static com.swalla.campusdock.Utils.Config.DATA_FETCHED;
 import static com.swalla.campusdock.Utils.Config.PREF_NAME;
 import static com.swalla.campusdock.Utils.Config.PREF_USER_API_KEY;
 import static com.swalla.campusdock.Utils.Config.PREF_USER_CLASS;
@@ -196,6 +203,20 @@ public class HomeActivity extends AppCompatActivity {
                     @Override
                     public void onResponse(String response) {
                         Log.d("App", "ResponseHome:" + response);
+                        try {
+                            JSONObject obj = new JSONObject(response);
+                            if (!obj.getBoolean("error")) {
+                                JSONArray ar = obj.getJSONArray("data");
+                                int eventCount = ar.length();
+                                showPrompt(eventCount, ar);
+                            }
+                            else{
+                                Toasty.error(getApplicationContext(), "Something went wrong :(", Toast.LENGTH_LONG).show();
+                            }
+                        }catch(JSONException e){
+                            e.printStackTrace();
+                            Toasty.normal(getApplicationContext(),"Something went wrong :(", Toast.LENGTH_SHORT).show();
+                        }
                     }
                 }, new Response.ErrorListener() {
             @Override
@@ -219,6 +240,41 @@ public class HomeActivity extends AppCompatActivity {
                 DefaultRetryPolicy.DEFAULT_MAX_RETRIES,
                 DefaultRetryPolicy.DEFAULT_BACKOFF_MULT));
         LocalStore.getNetworkqueue(this).add(stringRequest);
+    }
+
+    private void showPrompt(int eventCount, JSONArray eventArray){
+        if(eventCount>0) {
+            LayoutInflater inflater = this.getLayoutInflater();
+            View dialogView = inflater.inflate(R.layout.event_backup_prompt, null);
+
+            AlertDialog.Builder dialogBuilder = new AlertDialog.Builder(this, R.style.PinDialog);
+            final AlertDialog alertDialog = dialogBuilder.setCancelable(false).setView(dialogView).create();
+            alertDialog.show();
+            final TextView title = dialogView.findViewById(R.id.title);
+            final TextView message = dialogView.findViewById(R.id.message);
+            final Button yes = dialogView.findViewById(R.id.yes);
+            final Button no = dialogView.findViewById(R.id.no);
+
+            title.setText("Backup");
+            message.setText("Found " + eventCount + " active Events!");
+            yes.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    alertDialog.dismiss();
+                    Toasty.normal(getApplicationContext(), "Fetching events in background", Toast.LENGTH_SHORT).show();
+                    pref.edit().putBoolean(DATA_FETCHED, true).commit();
+                }
+            });
+            no.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    pref.edit().putBoolean(DATA_FETCHED, true).commit();
+                    alertDialog.dismiss();
+                }
+            });
+        }
+        else
+            pref.edit().putBoolean(DATA_FETCHED, true).commit();
     }
 
     public static void showNotification(int position){
@@ -284,6 +340,7 @@ public class HomeActivity extends AppCompatActivity {
             switch (intent.getStringExtra(Config.NEW_UPDATE)){
                 case Config.SHOW_NEW_EVENT:
                     showNotification(0);
+                    EventFragment.adapterDataUpdated();
                     break;
                 case Config.SHOW_NEW_BULLETIN:
                     showNotification(1);
