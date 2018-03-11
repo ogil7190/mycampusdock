@@ -25,17 +25,16 @@ import com.swalla.campusdock.Classes.Bulletin;
 import com.swalla.campusdock.Utils.Utils;
 import com.swalla.campusdock.listeners.RecyclerItemClickListener;
 import com.swalla.campusdock.R;
-import com.swalla.campusdock.Utils.Config;
 import com.swalla.campusdock.Utils.DownloadFileFromURL;
 import com.swalla.campusdock.listeners.OnFileDownloadCompleteListener;
 
 import java.util.Date;
 
-import es.dmoral.toasty.Toasty;
+import static com.swalla.campusdock.Utils.Config.Types.TYPE_BULLETIN;
 
 
 public class BulletinActivity extends AppCompatActivity {
-    private TextView cardTitle, cardDescription, chipText, cardDate, attachmentText;
+    private TextView cardTitle, cardDescription, chipText, cardDate, attachmentText, noFileText;
     private RecyclerView fileList;
     private View indicator;
 
@@ -49,7 +48,7 @@ public class BulletinActivity extends AppCompatActivity {
         fileList = findViewById(R.id.recycler_view);
         cardDate = findViewById(R.id.card_date);
         indicator = findViewById(R.id.attachmentIndicator);
-        final Bulletin bulletin = (Bulletin) getIntent().getSerializableExtra(Config.TYPE_BULLETIN);
+        final Bulletin bulletin = (Bulletin) getIntent().getSerializableExtra(TYPE_BULLETIN);
 
         cardTitle.setText(bulletin.getBulletinName());
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
@@ -64,10 +63,12 @@ public class BulletinActivity extends AppCompatActivity {
         cardDate.setText(finalDate);
 
         attachmentText = findViewById(R.id.attachmentText);
+        noFileText = findViewById(R.id.noFileText);
+
         if(bulletin.getFiles().length()==0){
             fileList.setVisibility(View.GONE);
-            attachmentText.setVisibility(View.GONE);
             indicator.setVisibility(View.GONE);
+            noFileText.setVisibility(View.VISIBLE);
         } else {
             final String[] files = bulletin.getFiles().split(",");
             BulletinFileAdapter adapter = new BulletinFileAdapter(getApplicationContext(), files);
@@ -138,7 +139,7 @@ public class BulletinActivity extends AppCompatActivity {
     public void onBackPressed() {
         fileList.setVisibility(View.GONE);
         attachmentText.setVisibility(View.GONE);
-
+        noFileText.setVisibility(View.GONE);
         super.onBackPressed();
     }
 }

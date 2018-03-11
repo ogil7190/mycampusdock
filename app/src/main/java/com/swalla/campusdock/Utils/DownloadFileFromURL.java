@@ -16,7 +16,7 @@ import java.io.OutputStream;
 import java.net.URL;
 import java.net.URLConnection;
 
-import static com.swalla.campusdock.Utils.Config.BASE_CLASS_URL;
+import static com.swalla.campusdock.Utils.Config.Urls.URL_BASE_FILES;
 
 /**
  * Created by ogil on 03/03/18.
@@ -45,7 +45,7 @@ public class DownloadFileFromURL extends AsyncTask<String, String, String> {
     protected String doInBackground(String... f_url) {
         int count;
         try {
-            String fileUrl = BASE_CLASS_URL + f_url[0];
+            String fileUrl = URL_BASE_FILES + f_url[0];
 
             URL url = new URL(fileUrl);
             URLConnection connection = url.openConnection();
@@ -76,6 +76,12 @@ public class DownloadFileFromURL extends AsyncTask<String, String, String> {
             Log.e("Error: ", e.getMessage());
         }
         return null;
+    }
+
+    @Override
+    protected void onProgressUpdate(String... values) {
+        super.onProgressUpdate(values);
+        Log.d("App", "Progress is :"+values[0]);
     }
 
     @Override

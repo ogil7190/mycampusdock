@@ -2,10 +2,8 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/CampusDock.iml" filepath="$PROJECT_DIR$/CampusDock.iml" />
       <module fileurl="file://$PROJECT_DIR$/app/app.iml" filepath="$PROJECT_DIR$/app/app.iml" />
       <module fileurl="file://$PROJECT_DIR$/mycampusdock.iml" filepath="$PROJECT_DIR$/mycampusdock.iml" />
-      <module fileurl="file://$PROJECT_DIR$/mycampusdock_front.iml" filepath="$PROJECT_DIR$/mycampusdock_front.iml" />
     </modules>
   </component>
 </project>

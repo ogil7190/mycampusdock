@@ -6,7 +6,6 @@ import android.os.Environment;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v7.widget.RecyclerView;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -31,50 +30,44 @@ import static com.swalla.campusdock.Utils.Config.Urls.URL_BASE_FILES;
  * Created by meetesh on 13/01/18.
  */
 
-public class EventAdapter extends RecyclerView.Adapter<EventAdapter.EventViewHolder> {
+public class EventEnrollAdapter extends RecyclerView.Adapter<EventEnrollAdapter.EventEnrollViewHolder> {
 
     private Context mContext;
     private List<Event> eventList;
 
-    public class EventViewHolder extends RecyclerView.ViewHolder {
+    public class EventEnrollViewHolder extends RecyclerView.ViewHolder {
         private TextView title, date;
         private ImageView banner;
-        private TextView chipText;
-        private TextView updatedFlag;
+        private TextView tags;
 
-        public EventViewHolder(View view) {
+        public EventEnrollViewHolder(View view) {
             super(view);
             title = view.findViewById(R.id.card_title);
-            date = view.findViewById(R.id.card_date);
+            date = view.findViewById(R.id.card_expiry);
             banner = view.findViewById(R.id.card_image);
-            chipText = view.findViewById(R.id.chipText);
-            updatedFlag = view.findViewById(R.id.updatedFlag);
+            tags = view.findViewById(R.id.card_tags);
         }
     }
 
-    public EventAdapter(Context mContext, List<Event> eventList) {
+    public EventEnrollAdapter(Context mContext, List<Event> eventList) {
         this.mContext = mContext;
         this.eventList = eventList;
     }
 
     @Override
-    public EventViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
-        View itemView = LayoutInflater.from(parent.getContext()).inflate(R.layout.notification_card, parent, false);
-        return new EventViewHolder(itemView);
+    public EventEnrollViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
+        View itemView = LayoutInflater.from(parent.getContext()).inflate(R.layout.notification_card_enroll, parent, false);
+        return new EventEnrollViewHolder(itemView);
     }
 
     @Override
-    public void onBindViewHolder(final EventViewHolder holder, int position) {
+    public void onBindViewHolder(final EventEnrollViewHolder holder, int position) {
         final Event currentEvent = eventList.get(position);
         holder.title.setText(currentEvent.getEventName());
-        Date date = Utils.fromISO8601UTC(currentEvent.getDate());
         Date endDate = Utils.fromISO8601UTC(currentEvent.getEndDate());
-        String finalDate = date.getDate()+ " "+Utils.parseMonth(date.getMonth())+" - "+ endDate.getDate()+" "+Utils.parseMonth(endDate.getMonth());
-        holder.date.setText(finalDate);
-        holder.chipText.setText(currentEvent.getCreated_by());
-        if(currentEvent.isUpdated()){
-            holder.updatedFlag.setVisibility(View.VISIBLE);
-        }
+        String finalDate = endDate.getDate()+" "+Utils.parseMonth(endDate.getMonth());
+        holder.date.setText("Event Ends on : "+finalDate);
+        holder.tags.setText(currentEvent.getTags());
 
         if(currentEvent.getUrl() == null) {
             holder.banner.setImageResource(R.drawable.test_poster);

@@ -22,13 +22,14 @@ import com.swalla.campusdock.Adapters.BulletinAdapter;
 import com.swalla.campusdock.listeners.RecyclerItemClickListener;
 import com.swalla.campusdock.Databases.DockDB;
 import com.swalla.campusdock.R;
-import com.swalla.campusdock.Utils.Config;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
 import static android.content.Context.MODE_PRIVATE;
+import static com.swalla.campusdock.Utils.Config.Prefs.PREF_NAME;
+import static com.swalla.campusdock.Utils.Config.Types.TYPE_BULLETIN;
 
 public class BulletinFragment extends Fragment {
     public static final String ID = "BulletinFragment";
@@ -46,17 +47,14 @@ public class BulletinFragment extends Fragment {
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
-        View v = inflater.inflate(R.layout.fragment_class, null);
+        View v = inflater.inflate(R.layout.fragment_bulletin, null);
 
         recyclerView = v.findViewById(R.id.recycler_view_class);
-        pref = getContext().getSharedPreferences(Config.PREF_NAME, MODE_PRIVATE);
+        pref = getContext().getSharedPreferences(PREF_NAME, MODE_PRIVATE);
         bulletinList = new ArrayList<>();
 
         bulletinList = DockDB.getIntsance(getContext()).getBulletinDao().getAllClassEvents();
-
         Collections.reverse(bulletinList);
-
-        bulletinList.add(new Bulletin("@ogil","Demo Bulletin For Classes","This is my <b>demo Description </b><br><br>#OGIL7190","", "@dock", "2018-03-31T00:00:00.000Z", "2018-03-31T00:00:00.000Z"));
         adapter = new BulletinAdapter(getContext(), bulletinList);
 
         RecyclerView.LayoutManager mLayoutManager = new LinearLayoutManager(getContext());
@@ -95,7 +93,7 @@ public class BulletinFragment extends Fragment {
 
     private void gotoBulletin(Bulletin bulletin, View view) {
         Intent intent = new Intent(getActivity(), BulletinActivity.class);
-        intent.putExtra(Config.TYPE_BULLETIN, bulletin);
+        intent.putExtra(TYPE_BULLETIN, bulletin);
         if (startingBulletin == null) {
             ActivityOptionsCompat options = ActivityOptionsCompat.
                     makeSceneTransitionAnimation(getActivity(), view, ViewCompat.getTransitionName(view));

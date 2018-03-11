@@ -2,8 +2,6 @@ package com.swalla.campusdock.Activities;
 
 import android.Manifest;
 import android.animation.ObjectAnimator;
-import android.app.Activity;
-import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -12,7 +10,6 @@ import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.support.transition.TransitionManager;
 import android.support.v4.app.ActivityCompat;
-import android.support.v4.app.ActivityOptionsCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
@@ -27,11 +24,9 @@ import android.view.ViewGroup;
 import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
 import android.view.inputmethod.InputMethodManager;
-import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.ImageView;
-import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -39,11 +34,9 @@ import android.widget.Toast;
 import com.android.volley.AuthFailureError;
 import com.android.volley.DefaultRetryPolicy;
 import com.android.volley.Request;
-import com.android.volley.RequestQueue;
 import com.android.volley.Response;
 import com.android.volley.VolleyError;
 import com.android.volley.toolbox.StringRequest;
-import com.android.volley.toolbox.Volley;
 import com.google.firebase.iid.FirebaseInstanceId;
 import com.google.firebase.messaging.FirebaseMessaging;
 import com.swalla.campusdock.R;
@@ -59,17 +52,10 @@ import java.util.Map;
 
 import es.dmoral.toasty.Toasty;
 
-import static com.swalla.campusdock.Utils.Config.PREF_NAME;
-import static com.swalla.campusdock.Utils.Config.PREF_REG_ID_KEY;
-import static com.swalla.campusdock.Utils.Config.PREF_USER_API_KEY;
-import static com.swalla.campusdock.Utils.Config.PREF_USER_CLASS;
-import static com.swalla.campusdock.Utils.Config.PREF_USER_EMAIL;
-import static com.swalla.campusdock.Utils.Config.PREF_USER_IS_LOGGED_IN;
-import static com.swalla.campusdock.Utils.Config.PREF_USER_NAME;
-import static com.swalla.campusdock.Utils.Config.PREF_USER_PHONE;
-import static com.swalla.campusdock.Utils.Config.PREF_USER_ROLL;
-import static com.swalla.campusdock.Utils.Config.PREF_USER_SUBSCRIPTIONS;
-import static com.swalla.campusdock.Utils.Config.TYPE_VERFIFICATION;
+import static com.swalla.campusdock.Utils.Config.Prefs.*;
+import static com.swalla.campusdock.Utils.Config.Types.TYPE_EXPLICIT;
+import static com.swalla.campusdock.Utils.Config.Types.TYPE_IMPLICIT;
+import static com.swalla.campusdock.Utils.Config.Types.TYPE_VERIFICATION;
 
 public class Registration extends AppCompatActivity {
 
@@ -81,6 +67,7 @@ public class Registration extends AppCompatActivity {
     private ProgressBar progressBar;
     private ImageView logo;
     private JSONObject res;
+    private int wrongAttempt = 3;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -252,13 +239,13 @@ public class Registration extends AppCompatActivity {
     }
 
     private void subscribe(JSONObject obj) throws JSONException {
-        JSONArray a = obj.getJSONArray(Config.TYPE_IMPLICIT);
+        JSONArray a = obj.getJSONArray(TYPE_IMPLICIT);
         for (int i = 0; i < a.length(); i++) {
             String s = a.getString(i);
             FirebaseMessaging.getInstance().subscribeToTopic(s);
         }
 
-        a = obj.getJSONArray(Config.TYPE_EXPLICIT);
+        a = obj.getJSONArray(TYPE_EXPLICIT);
         for (int i = 0; i < a.length(); i++) {
             String s = a.getString(i);
             FirebaseMessaging.getInstance().subscribeToTopic(s);
@@ -270,7 +257,7 @@ public class Registration extends AppCompatActivity {
     private void verifyPin(String email) {
         LayoutInflater inflater = this.getLayoutInflater();
         View dialogView = inflater.inflate(R.layout.verify_pin, null);
-
+        wrongAttempt = 5;
         AlertDialog.Builder dialogBuilder = new AlertDialog.Builder(this, R.style.PinDialog);
         final AlertDialog alertDialog = dialogBuilder.setCancelable(false).setView(dialogView).create();
         alertDialog.show();
@@ -363,11 +350,16 @@ public class Registration extends AppCompatActivity {
                             alertDialog.dismiss();
                             saveUser(res);
                         } else {
+                            wrongAttempt--;
                             error.setVisibility(View.VISIBLE);
-                            disable.setVisibility(View.GONE);
                         }
-                        disable.setVisibility(View.GONE);
-                        progressBar.setVisibility(View.GONE);
+                        if(wrongAttempt<0){
+                            alertDialog.dismiss();
+                            Toasty.error(getApplicationContext(), "Maximum Attempts Crossed!", Toast.LENGTH_LONG).show();
+                        }else {
+                            disable.setVisibility(View.GONE);
+                            progressBar.setVisibility(View.GONE);
+                        }
                     } catch (Exception e) {
                         e.printStackTrace();
                     }
@@ -381,9 +373,7 @@ public class Registration extends AppCompatActivity {
     }
 
     private int isPinVerified(String pinEntered) {
-        Log.d("App", "Pin :" + pinEntered);
-        String originalPin = (String) LocalStore.getObject(TYPE_VERFIFICATION);
-        Log.d("App", "ORIGINAL PIN:" + originalPin);
+        String originalPin = (String) LocalStore.getObject(TYPE_VERIFICATION);
         if (pinEntered.equals(originalPin)) {
             return 1;
         }
@@ -401,5 +391,4 @@ public class Registration extends AppCompatActivity {
             ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, 7190);
         }
     }
-
 }

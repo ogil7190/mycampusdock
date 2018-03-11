@@ -10,10 +10,15 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.Serializable;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Date;
+
+import static com.swalla.campusdock.Utils.Config.Bulletin.STR_BULLETIN_CREATOR;
+import static com.swalla.campusdock.Utils.Config.Bulletin.STR_BULLETIN_DESCRIPTION;
+import static com.swalla.campusdock.Utils.Config.Bulletin.STR_BULLETIN_EXPIRY;
+import static com.swalla.campusdock.Utils.Config.Bulletin.STR_BULLETIN_FILES;
+import static com.swalla.campusdock.Utils.Config.Bulletin.STR_BULLETIN_ID;
+import static com.swalla.campusdock.Utils.Config.Bulletin.STR_BULLETIN_TIME;
+import static com.swalla.campusdock.Utils.Config.Bulletin.STR_BULLETIN_TITLE;
 
 @Entity
 public class Bulletin implements Serializable{
@@ -53,13 +58,16 @@ public class Bulletin implements Serializable{
 
     public static Bulletin parseFromJSON(JSONObject obj) throws JSONException{
         ArrayList<String> files = new ArrayList<>();
-        JSONArray ar = obj.getJSONArray("url");
-
-        for(int i=0; i<ar.length(); i++){
-            files.add(ar.getString(i));
+        try {
+            JSONArray ar = new JSONArray(obj.getString(STR_BULLETIN_FILES));
+            for (int i = 0; i < ar.length(); i++) {
+                files.add(ar.getString(i));
+            }
         }
+        catch (JSONException e){
 
-        return new Bulletin(obj.getString("bulletin_id"), obj.getString("name"), obj.getString("description").replace("\r\n", "<br>"), android.text.TextUtils.join(",", files), obj.getString("created_by"), obj.getString("date"), obj.getString("expire_date"));
+        }
+        return new Bulletin(obj.getString(STR_BULLETIN_ID), obj.getString(STR_BULLETIN_TITLE), obj.getString(STR_BULLETIN_DESCRIPTION).replace("\r\n", "<br>"), android.text.TextUtils.join(",", files), obj.getString(STR_BULLETIN_CREATOR), obj.getString(STR_BULLETIN_TIME), obj.getString(STR_BULLETIN_EXPIRY));
     }
 
     public void setCreated_by(String created_by) {
@@ -67,7 +75,6 @@ public class Bulletin implements Serializable{
     }
 
     public String getCreated_by() {
-
         return created_by;
     }
 

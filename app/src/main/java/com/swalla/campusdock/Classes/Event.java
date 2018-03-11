@@ -14,6 +14,15 @@ import org.json.JSONObject;
 
 import java.io.Serializable;
 
+import static com.swalla.campusdock.Utils.Config.Event.STR_EVENT_CREATOR;
+import static com.swalla.campusdock.Utils.Config.Event.STR_EVENT_DESCRIPTION;
+import static com.swalla.campusdock.Utils.Config.Event.STR_EVENT_EXPIRY;
+import static com.swalla.campusdock.Utils.Config.Event.STR_EVENT_ID;
+import static com.swalla.campusdock.Utils.Config.Event.STR_EVENT_IMAGE;
+import static com.swalla.campusdock.Utils.Config.Event.STR_EVENT_TAGS;
+import static com.swalla.campusdock.Utils.Config.Event.STR_EVENT_TIME;
+import static com.swalla.campusdock.Utils.Config.Event.STR_EVENT_TITLE;
+
 @Entity
 public class Event implements Serializable {
     @PrimaryKey
@@ -134,7 +143,7 @@ public class Event implements Serializable {
     }
 
     public static Event parseFromJSON(JSONObject obj) throws JSONException{
-        return new Event(obj.getString("event_id"), obj.getString("name"), obj.getString("description").replace("\r\n", "<br>"), obj.getString("event_start_std"), obj.getString("event_end_std"), obj.getString("url"), obj.getString("subjects"), obj.getString("created_by"));
+        return new Event(obj.getString(STR_EVENT_ID), obj.getString(STR_EVENT_TITLE), obj.getString(STR_EVENT_DESCRIPTION).replace("\r\n", "<br>"), obj.getString(STR_EVENT_TIME), obj.getString(STR_EVENT_EXPIRY), obj.getString(STR_EVENT_IMAGE), obj.getString(STR_EVENT_TAGS), obj.getString(STR_EVENT_CREATOR));
     }
 
     public void setTags(String tags) {
@@ -147,12 +156,12 @@ public class Event implements Serializable {
 
     public Event updateEvent(JSONObject obj) throws JSONException{
         this.isUpdated = true;
-        this.description = obj.getString("event_description").replace("\r\n", "<br>");
-        this.date = obj.getString("event_start_std");
-        this.endDate = obj.getString("event_end_std");
+        this.description = obj.getString(STR_EVENT_DESCRIPTION).replace("\r\n", "<br>");
+        this.date = obj.getString(STR_EVENT_TIME);
+        this.endDate = obj.getString(STR_EVENT_EXPIRY);
         try {
-            this.url = obj.getString("event_image_url");
-            NotiUtil.getBitmapFromURL(this.url);
+            this.url = obj.getString(STR_EVENT_IMAGE);
+            new NotiUtil().getBitmapFromURL(this.url);
         }catch(Exception e){
             e.printStackTrace();
         }

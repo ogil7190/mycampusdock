@@ -6,6 +6,7 @@ import android.os.Bundle;
 import android.support.v4.app.ActivityOptionsCompat;
 import android.support.v4.app.Fragment;
 import android.support.v4.view.ViewCompat;
+import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.widget.DefaultItemAnimator;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
@@ -16,14 +17,19 @@ import android.view.ViewGroup;
 import com.swalla.campusdock.Activities.EventActivity;
 import com.swalla.campusdock.Adapters.EventAdapter;
 import com.swalla.campusdock.Classes.Event;
+import com.swalla.campusdock.Utils.BusHolder;
 import com.swalla.campusdock.listeners.RecyclerItemClickListener;
 import com.swalla.campusdock.R;
 import com.swalla.campusdock.Utils.Config;
 import com.swalla.campusdock.Databases.DockDB;
 
+import org.greenrobot.eventbus.Subscribe;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+
+import static com.swalla.campusdock.Utils.Config.Types.TYPE_EVENT;
 
 /**
  * Created by ogil on 14/01/18.
@@ -34,6 +40,8 @@ public class EventFragment extends Fragment {
     private RecyclerView recyclerView;
     private static EventAdapter adapter;
     private List<Event> eventList;
+    private Event startingEvent;
+    private SwipeRefreshLayout swiperefresh;
 
     public static EventFragment newInstance() {
         EventFragment fragment = new EventFragment();
@@ -44,18 +52,13 @@ public class EventFragment extends Fragment {
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
-        View v = inflater.inflate(R.layout.fragment_home,null);
+        View v = inflater.inflate(R.layout.fragment_event,null);
 
         recyclerView = v.findViewById(R.id.recycler_view);
         eventList = new ArrayList<>();
-
+        swiperefresh = v.findViewById(R.id.swiperefresh);
         eventList = DockDB.getIntsance(getContext()).getEventDao().getAllEvents();
-
         Collections.reverse(eventList);
-
-        Event demo = new Event("@ogil", "Career Expo 2018","The <b>Careers Expo</b> is your chance to discuss employment opportunities with organisations interested in UNSW graduates.<br><br><u>Follow us on Instagram</u> <br> <b>#EXPO2018</b> ","2018-03-25T00:00:00.000Z","2018-03-31T00:00:00.000Z", null, "fun","@Dock");
-        demo.setEnrolled(true);
-        eventList.add(demo);
         adapter = new EventAdapter(getContext(), eventList);
 
         RecyclerView.LayoutManager mLayoutManager = new LinearLayoutManager(getContext());
@@ -84,20 +87,32 @@ public class EventFragment extends Fragment {
                     }
                 })
         );
+
+        swiperefresh.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
+            @Override
+            public void onRefresh() {
+                checkForUpdates();
+                swiperefresh.setRefreshing(false);
+            }
+        });
+
         if(startingEvent!=null){
             gotoEvent(startingEvent, recyclerView);
         }
         return v;
     }
 
-    private Event startingEvent;
+    private void checkForUpdates(){
+
+    }
+
     public void setStartingEvent(Event event){
         startingEvent = event;
     }
 
     private void gotoEvent(Event event, View view){
         Intent intent = new Intent(getActivity(), EventActivity.class);
-        intent.putExtra(Config.TYPE_EVENT, event);
+        intent.putExtra(TYPE_EVENT, event);
         if(startingEvent == null) {
             ActivityOptionsCompat options = ActivityOptionsCompat.makeSceneTransitionAnimation(getActivity(), view, ViewCompat.getTransitionName(view));
             startActivity(intent, options.toBundle());
@@ -105,6 +120,26 @@ public class EventFragment extends Fragment {
             startingEvent = null;
             startActivity(intent);
         }
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        BusHolder.getInstnace().register(this);
+    }
+
+    @Override
+    public void onPause() {
+        super.onPause();
+        BusHolder.getInstnace().unregister(this);
+    }
+
+    @Subscribe
+    public void onDatasetUpdated(Event event) {
+        if(event!=null)
+            eventList.add(event);
+        Collections.reverse(eventList);
+        adapterDataUpdated();
     }
 
     public static void adapterDataUpdated(){

@@ -17,7 +17,10 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:layout_gravity="center"
-            android:layout_margin="10dp"
+            android:layout_marginLeft="10dp"
+            android:layout_marginRight="10dp"
+            android:layout_marginTop="5dp"
+            android:layout_marginBottom="5dp"
             android:elevation="7dp"
             card_view:cardCornerRadius="6dp">
 
@@ -27,16 +30,18 @@
                 xmlns:tools="http://schemas.android.com/tools">
 
                 <TextView
+                    android:layout_marginTop="10dp"
+                    android:layout_marginBottom="5dp"
                     android:padding="2dp"
                     android:id="@+id/card_title"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_alignParentStart="true"
+                    android:layout_below="@id/card_image"
                     android:gravity="center_vertical"
                     android:paddingLeft="5dp"
-                    android:layout_marginBottom="5dp"
-                    android:singleLine="true"
                     android:layout_marginLeft="5dp"
+                    android:singleLine="true"
                     android:layout_marginRight="5dp"
                     android:ellipsize="marquee"
                     android:textStyle="bold"
@@ -44,7 +49,7 @@
                     android:textSize="18dp" />
 
                 <RelativeLayout
-                    android:id="@+id/holder"
+                    android:id="@+id/container"
                     android:layout_marginLeft="5dp"
                     android:layout_marginTop="5dp"
                     android:layout_marginBottom="5dp"
@@ -61,7 +66,7 @@
                         android:paddingLeft="5dp"
                         android:paddingRight="5dp"
                         android:layout_marginRight="5dp"
-                        android:text="21 Jan 2018"
+                        android:text="21 Jan - 22 Jan"
                         android:textSize="14dp"
                         android:textStyle="bold" />
 
@@ -92,9 +97,8 @@
                     android:layout_marginLeft="5dp"
                     android:textIsSelectable="true"
                     android:textSize="16dp"
-                    android:layout_above="@id/attachmentText"
                     android:text="This is the description"
-                    android:layout_below="@+id/holder"
+                    android:layout_below="@+id/container"
                     android:layout_marginRight="5dp"
                     android:layout_marginBottom="5dp"
                     android:layout_width="match_parent"
@@ -103,19 +107,36 @@
                     android:id="@+id/attachmentText"
                     android:textAlignment="center"
                     android:layout_marginBottom="5dp"
-                    android:text="--: Attachments :--"
-                    android:layout_above="@id/recycler_view"
+                    android:textSize="15dp"
+                    android:text="---: Attachments :---"
+                    android:layout_above="@id/fileContainer"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content" />
 
-                <android.support.v7.widget.RecyclerView
-                    android:id="@+id/recycler_view"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginBottom="10dp"
+                <LinearLayout
+                    android:id="@+id/fileContainer"
+                    android:orientation="vertical"
                     android:layout_alignParentBottom="true"
-                    android:clipToPadding="false"
-                    android:scrollbars="horizontal" />
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content">
+                    <android.support.v7.widget.RecyclerView
+                        android:id="@+id/recycler_view"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="10dp"
+                        android:clipToPadding="false"
+                        android:scrollbars="horizontal" />
+                    <TextView
+                        android:textSize="16dp"
+                        android:visibility="gone"
+                        android:layout_marginBottom="10dp"
+                        android:textColor="@color/colorPrimaryDark"
+                        android:id="@+id/noFileText"
+                        android:text="**** NO ATTACHMENT FOUND ****"
+                        android:textAlignment="center"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content" />
+                </LinearLayout>
             </RelativeLayout>
 
         </android.support.v7.widget.CardView>

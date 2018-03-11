@@ -6,86 +6,101 @@
 
     <android.support.v7.widget.CardView
         android:id="@+id/user_card"
-        android:layout_above="@+id/logout"
         android:elevation="2dp"
         android:layout_margin="8dp"
         app:cardCornerRadius="6dp"
         android:layout_width="match_parent"
         android:layout_height="match_parent">
 
-        <LinearLayout
-            android:orientation="vertical"
-            android:padding="10dp"
+        <RelativeLayout
             android:layout_width="match_parent"
             android:layout_height="match_parent">
 
+            <ImageView
+                android:layout_centerHorizontal="true"
+                android:layout_alignParentTop="true"
+                android:src="@drawable/back"
+                android:scaleType="centerCrop"
+                android:layout_width="match_parent"
+                android:layout_height="150dp" />
+
+            <ImageView
+                android:id="@+id/profilePic"
+                android:layout_centerHorizontal="true"
+                android:layout_alignParentTop="true"
+                android:layout_marginTop="75dp"
+                android:layout_marginBottom="30dp"
+                android:background="@drawable/round_back"
+                android:src="@drawable/ic_profile"
+                android:layout_width="150dp"
+                android:layout_height="150dp" />
+
             <TextView
+                android:maxLines="1"
+                android:textSize="16dp"
+                android:layout_below="@+id/profilePic"
+                android:id="@+id/nameHint"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="10dp"
-                android:fontFamily="@font/ubuntu_light"
-                android:text="Name"
+                android:text="OGIL 7190"
                 android:textAlignment="center" />
 
             <TextView
-                android:id="@+id/name"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:fontFamily="@font/ubuntu_bold"
-                android:text="Meetesh Mehta"
-                android:textAlignment="center"
-                android:textSize="25dp" />
-
-            <TextView
+                android:maxLines="1"
+                android:textSize="16dp"
+                android:id="@+id/phoneHint"
+                android:layout_below="@+id/nameHint"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="10dp"
-                android:fontFamily="@font/ubuntu"
-                android:text="Roll Number"
+                android:text="91XXXXXXXX"
                 android:textAlignment="center" />
-            <TextView
-                android:id="@+id/roll"
-                android:text="1/16/FET/BCS/1/077"
-                android:textSize="25dp"
-                android:fontFamily="@font/ubuntu_bold"
-                android:textAlignment="center"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content" />
-            <TextView
-                android:layout_marginTop="10dp"
-                android:text="Phone Number"
-                android:fontFamily="@font/ubuntu_light"
-                android:textAlignment="center"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content" />
-            <TextView
-                android:id="@+id/phone"
-                android:text="+91 971 741 9594"
-                android:textSize="25dp"
-                android:fontFamily="@font/ubuntu_bold"
-                android:textAlignment="center"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content" />
-        </LinearLayout>
 
+            <TextView
+                android:maxLines="1"
+                android:textSize="16dp"
+                android:id="@+id/emailHint"
+                android:layout_below="@+id/rollHint"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:text="abcdefgh@gmail.com"
+                android:textAlignment="center" />
+
+            <TextView
+                android:maxLines="1"
+                android:textSize="16dp"
+                android:id="@+id/rollHint"
+                android:layout_below="@+id/phoneHint"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:text="x/xx/xxx/xxx/x/xxx"
+                android:textAlignment="center" />
+
+            <LinearLayout
+                android:layout_alignParentBottom="true"
+                android:layout_marginBottom="10dp"
+                android:orientation="horizontal"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+                <Button
+                    android:id="@+id/like"
+                    android:text="Like Us"
+                    android:layout_weight="1"
+                    android:layout_margin="5dp"
+                    android:background="@drawable/input_round_color"
+                    android:layout_width="match_parent"
+                    android:layout_height="40dp" />
+                <Button
+                    android:id="@+id/logout"
+                    android:text="Logout"
+                    android:layout_margin="5dp"
+                    android:layout_weight="1"
+                    android:background="@drawable/input_round_disable"
+                    android:layout_width="match_parent"
+                    android:layout_height="40dp" />
+            </LinearLayout>
+        </RelativeLayout>
     </android.support.v7.widget.CardView>
-
-    <Button
-        android:layout_centerHorizontal="true"
-        android:layout_alignParentBottom="true"
-        android:id="@+id/logout"
-        android:text="Logout"
-        android:textColor="#ffffff"
-        android:textSize="16dp"
-        android:paddingTop="15dp"
-        android:paddingBottom="15dp"
-        android:paddingLeft="6dp"
-        android:paddingRight="6dp"
-        android:layout_marginLeft="10dp"
-        android:layout_marginRight="10dp"
-        android:layout_marginBottom="10dp"
-        android:background="@drawable/input_round_color"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content" />
-
 </RelativeLayout>

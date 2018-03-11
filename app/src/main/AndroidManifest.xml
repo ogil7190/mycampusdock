@@ -52,6 +52,7 @@
             android:name=".Activities.EventActivity"
             android:screenOrientation="portrait" />
         <activity
+            android:launchMode="singleTask"
             android:name=".Activities.HomeActivity"
             android:screenOrientation="portrait" />
         <activity

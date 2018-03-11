@@ -31,6 +31,8 @@ import java.util.Date;
 import java.util.List;
 import java.util.Random;
 
+import static com.swalla.campusdock.Utils.Config.Urls.URL_BASE_FILES;
+
 /**
  * Created by ogil on 14/01/18.
  */
@@ -40,6 +42,8 @@ public class NotiUtil {
     private static String TAG = NotiUtil.class.getSimpleName();
 
     private Context mContext;
+
+    public NotiUtil(){}
 
     public NotiUtil(Context mContext) {
         this.mContext = mContext;
@@ -139,33 +143,41 @@ public class NotiUtil {
      * Downloading push notification image before displaying it in
      * the notification tray
      */
-    public static Bitmap getBitmapFromURL(String strURL) {
-        String imgUrl = Config.BASE_URL + strURL;
-        try {
-            URL url = new URL(imgUrl);
-            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-            connection.setDoInput(true);
-            connection.connect();
-            InputStream input = connection.getInputStream();
-            Bitmap myBitmap = BitmapFactory.decodeStream(input);
+    private Bitmap image;
+    public Bitmap getBitmapFromURL(final String strURL) {
+        image = null;
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                String imgUrl = URL_BASE_FILES + strURL;
+                Log.d("App", "URL:"+imgUrl);
+                try {
+                    URL url = new URL(imgUrl);
+                    HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+                    connection.setDoInput(true);
+                    connection.connect();
+                    InputStream input = connection.getInputStream();
+                    Bitmap myBitmap = BitmapFactory.decodeStream(input);
 
-            File folder = new File(Environment.getExternalStorageDirectory() + File.separator + "CampusDock");
-            if(!folder.exists()){
-                folder.mkdirs();
+                    File folder = new File(Environment.getExternalStorageDirectory() + File.separator + "CampusDock");
+                    if(!folder.exists()){
+                        folder.mkdirs();
+                    }
+                    folder = new File(folder, strURL);
+                    if(folder.exists()){
+                        folder.delete();
+                    }
+                    Log.d("App", folder.toString());
+                    FileOutputStream fos = new FileOutputStream(folder);
+                    myBitmap.compress(Bitmap.CompressFormat.JPEG, 40, fos);
+                    fos.close();
+                    image = myBitmap;
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
             }
-            folder = new File(folder, strURL);
-            if(folder.exists()){
-                folder.delete();
-            }
-            Log.d("App", folder.toString());
-            FileOutputStream fos = new FileOutputStream(folder);
-            myBitmap.compress(Bitmap.CompressFormat.JPEG, 40, fos);
-            fos.close();
-            return myBitmap;
-        } catch (IOException e) {
-            e.printStackTrace();
-            return null;
-        }
+        }).run();
+        return image;
     }
 
     /* Playing notification sound */

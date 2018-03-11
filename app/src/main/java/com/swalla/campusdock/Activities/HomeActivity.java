@@ -18,7 +18,6 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
-import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -32,10 +31,15 @@ import com.aurelhubert.ahbottomnavigation.AHBottomNavigation;
 import com.aurelhubert.ahbottomnavigation.AHBottomNavigationItem;
 import com.swalla.campusdock.Classes.Bulletin;
 import com.swalla.campusdock.Classes.Event;
+import com.swalla.campusdock.Databases.DockDB;
 import com.swalla.campusdock.Fragments.BulletinFragment;
+import com.swalla.campusdock.Fragments.DiscoverFragment;
 import com.swalla.campusdock.Fragments.EventFragment;
+import com.swalla.campusdock.Fragments.HistoryFragment;
 import com.swalla.campusdock.Fragments.ProfileFragment;
 import com.swalla.campusdock.R;
+import com.swalla.campusdock.Services.CustomFirebaseMessagingService;
+import com.swalla.campusdock.Utils.BusHolder;
 import com.swalla.campusdock.Utils.Config;
 import com.swalla.campusdock.Utils.LocalStore;
 import com.swalla.campusdock.Utils.NotiUtil;
@@ -43,21 +47,31 @@ import com.swalla.campusdock.Utils.NotiUtil;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
-
 import java.util.HashMap;
 import java.util.Map;
 
 import es.dmoral.toasty.Toasty;
 
-import static com.swalla.campusdock.Utils.Config.DATA_FETCHED;
-import static com.swalla.campusdock.Utils.Config.PREF_NAME;
-import static com.swalla.campusdock.Utils.Config.PREF_USER_API_KEY;
-import static com.swalla.campusdock.Utils.Config.PREF_USER_CLASS;
-import static com.swalla.campusdock.Utils.Config.PREF_USER_ROLL;
-import static com.swalla.campusdock.Utils.Config.SHOW_NEW_BULLETIN;
-import static com.swalla.campusdock.Utils.Config.SHOW_NEW_EVENT;
-import static com.swalla.campusdock.Utils.Config.TYPE_BULLETIN;
-import static com.swalla.campusdock.Utils.Config.TYPE_EVENT;
+import static com.swalla.campusdock.Utils.Config.Flags.FLAG_DATA_FETCH;
+import static com.swalla.campusdock.Utils.Config.Flags.FLAG_NEW_UPDATE;
+import static com.swalla.campusdock.Utils.Config.Flags.FLAG_SHOW_NEW_BULLETIN;
+import static com.swalla.campusdock.Utils.Config.Flags.FLAG_SHOW_NEW_EVENT;
+import static com.swalla.campusdock.Utils.Config.Prefs.PREF_BACKUP_ARRAY_BULLETIN;
+import static com.swalla.campusdock.Utils.Config.Prefs.PREF_BACKUP_ARRAY_EVENT;
+import static com.swalla.campusdock.Utils.Config.Prefs.PREF_BACKUP_BULLETIN_FETCH_COUNT;
+import static com.swalla.campusdock.Utils.Config.Prefs.PREF_BACKUP_BULLETIN_FETCH_COUNT_LIMIT;
+import static com.swalla.campusdock.Utils.Config.Prefs.PREF_BACKUP_EVENT_FETCH_COUNT;
+import static com.swalla.campusdock.Utils.Config.Prefs.PREF_BACKUP_EVENT_FETCH_COUNT_LIMIT;
+import static com.swalla.campusdock.Utils.Config.Prefs.PREF_NAME;
+import static com.swalla.campusdock.Utils.Config.Prefs.PREF_USER_API_KEY;
+import static com.swalla.campusdock.Utils.Config.Prefs.PREF_USER_CLASS;
+import static com.swalla.campusdock.Utils.Config.Prefs.PREF_USER_ROLL;
+import static com.swalla.campusdock.Utils.Config.Requests.REQ_FETCH_BULLETIN;
+import static com.swalla.campusdock.Utils.Config.Requests.REQ_FETCH_EVENT;
+import static com.swalla.campusdock.Utils.Config.Requests.REQ_REACH_BULLETIN;
+import static com.swalla.campusdock.Utils.Config.Requests.REQ_REACH_EVENT;
+import static com.swalla.campusdock.Utils.Config.Types.TYPE_BULLETIN;
+import static com.swalla.campusdock.Utils.Config.Types.TYPE_EVENT;
 
 public class HomeActivity extends AppCompatActivity {
     private Fragment currentFragment;
@@ -81,6 +95,14 @@ public class HomeActivity extends AppCompatActivity {
                 case 1 :
                     currentFragment = BulletinFragment.newInstance();
                     currentFragmentTag = BulletinFragment.ID;
+                    break;
+                case 2 :
+                    currentFragment = DiscoverFragment.newInstance();
+                    currentFragmentTag = DiscoverFragment.ID;
+                    break;
+                case 3 :
+                    currentFragment = HistoryFragment.newInstance();
+                    currentFragmentTag = HistoryFragment.ID;
                     break;
                 case 4:
                     currentFragment = ProfileFragment.newInstance();
@@ -112,6 +134,12 @@ public class HomeActivity extends AppCompatActivity {
                 break;
             case BulletinFragment.ID:
                 navigation.setCurrentItem(1, false);
+                break;
+            case DiscoverFragment.ID:
+                navigation.setCurrentItem(2, false);
+                break;
+            case HistoryFragment.ID:
+                navigation.setCurrentItem(3, false);
                 break;
             case ProfileFragment.ID:
                 navigation.setCurrentItem(4, false);
@@ -189,13 +217,31 @@ public class HomeActivity extends AppCompatActivity {
         navigation.setInactiveColor(getResources().getColor(R.color.colorPrimaryDark));
         navigation.setOnTabSelectedListener(listener);
         replaceFragment();
-        LocalBroadcastManager.getInstance(getApplicationContext()).registerReceiver(receiver, new IntentFilter(Config.NEW_UPDATE));
+        LocalBroadcastManager.getInstance(getApplicationContext()).registerReceiver(receiver, new IntentFilter(FLAG_NEW_UPDATE));
         NotiUtil.clearNotifications(getApplicationContext());
-        if(!pref.getBoolean(Config.DATA_FETCHED, false)){
+
+        if(pref.getInt(FLAG_DATA_FETCH, -1) == -1){
             fetchUserData();
+        } else{
+            if(pref.getInt(PREF_BACKUP_EVENT_FETCH_COUNT, 0)<pref.getInt(PREF_BACKUP_EVENT_FETCH_COUNT_LIMIT, 0)){
+                try {
+                    fetchEvents(new JSONArray(pref.getString(PREF_BACKUP_ARRAY_EVENT, "[]")), pref.getInt(PREF_BACKUP_EVENT_FETCH_COUNT, 0));
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+            }
+
+            if(pref.getInt(PREF_BACKUP_BULLETIN_FETCH_COUNT, 0)<pref.getInt(PREF_BACKUP_BULLETIN_FETCH_COUNT_LIMIT, 0)){
+                try {
+                    fetchBulletins(new JSONArray(pref.getString(PREF_BACKUP_ARRAY_BULLETIN, "[]")), pref.getInt(PREF_BACKUP_BULLETIN_FETCH_COUNT, 0));
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+            }
         }
     }
 
+    private int eventCount = 0;
     private void fetchUserData(){
         String url = "https://mycampusdock.herokuapp.com/mobile-app-interaction";
         StringRequest stringRequest = new StringRequest(Request.Method.POST, url,
@@ -207,8 +253,8 @@ public class HomeActivity extends AppCompatActivity {
                             JSONObject obj = new JSONObject(response);
                             if (!obj.getBoolean("error")) {
                                 JSONArray ar = obj.getJSONArray("data");
-                                int eventCount = ar.length();
-                                showPrompt(eventCount, ar);
+                                eventCount = ar.length();
+                                fetchBulletinData(ar);
                             }
                             else{
                                 Toasty.error(getApplicationContext(), "Something went wrong :(", Toast.LENGTH_LONG).show();
@@ -231,7 +277,7 @@ public class HomeActivity extends AppCompatActivity {
                 params.put("roll", pref.getString(PREF_USER_ROLL, ""));
                 params.put("api", pref.getString(PREF_USER_API_KEY, ""));
                 params.put("class", pref.getString(PREF_USER_CLASS, ""));
-                params.put("type", ""+Config.REQ_FETCH_EVENT);
+                params.put("type", "" + REQ_FETCH_EVENT);
                 return params;
             }
         };
@@ -242,7 +288,54 @@ public class HomeActivity extends AppCompatActivity {
         LocalStore.getNetworkqueue(this).add(stringRequest);
     }
 
-    private void showPrompt(int eventCount, JSONArray eventArray){
+    private int bulletinCount = 0;
+    private void fetchBulletinData(final JSONArray eventArray){
+        String url = "https://mycampusdock.herokuapp.com/mobile-app-interaction";
+        StringRequest stringRequest = new StringRequest(Request.Method.POST, url,
+                new Response.Listener<String>() {
+                    @Override
+                    public void onResponse(String response) {
+                        Log.d("App", "ResponseHome:" + response);
+                        try {
+                            JSONObject obj = new JSONObject(response);
+                            if (!obj.getBoolean("error")) {
+                                JSONArray ar = obj.getJSONArray("data");
+                                bulletinCount = ar.length();
+                                showPrompt(eventArray, ar);
+                            }
+                            else{
+                                Toasty.error(getApplicationContext(), "Something went wrong :(", Toast.LENGTH_LONG).show();
+                            }
+                        }catch(JSONException e){
+                            e.printStackTrace();
+                            Toasty.normal(getApplicationContext(),"Something went wrong :(", Toast.LENGTH_SHORT).show();
+                        }
+                    }
+                }, new Response.ErrorListener() {
+            @Override
+            public void onErrorResponse(VolleyError error) {
+                Log.d("App", error.toString());
+                Toasty.error(getApplicationContext(), "Try Again!", Toast.LENGTH_LONG).show();
+            }
+        }) {
+            @Override
+            protected Map<String, String> getParams() throws AuthFailureError {
+                Map<String, String> params = new HashMap<>();
+                params.put("roll", pref.getString(PREF_USER_ROLL, ""));
+                params.put("api", pref.getString(PREF_USER_API_KEY, ""));
+                params.put("class", pref.getString(PREF_USER_CLASS, ""));
+                params.put("type", "" + REQ_FETCH_BULLETIN);
+                return params;
+            }
+        };
+        stringRequest.setRetryPolicy(new DefaultRetryPolicy(
+                10000,
+                DefaultRetryPolicy.DEFAULT_MAX_RETRIES,
+                DefaultRetryPolicy.DEFAULT_BACKOFF_MULT));
+        LocalStore.getNetworkqueue(this).add(stringRequest);
+    }
+
+    private void showPrompt(final JSONArray eventArray, final JSONArray bulletinArray){
         if(eventCount>0) {
             LayoutInflater inflater = this.getLayoutInflater();
             View dialogView = inflater.inflate(R.layout.event_backup_prompt, null);
@@ -256,25 +349,124 @@ public class HomeActivity extends AppCompatActivity {
             final Button no = dialogView.findViewById(R.id.no);
 
             title.setText("Backup");
-            message.setText("Found " + eventCount + " active Events!");
+            message.setText("Found " + eventCount + " active events & "+bulletinCount+" active bulletins!");
             yes.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
                     alertDialog.dismiss();
                     Toasty.normal(getApplicationContext(), "Fetching events in background", Toast.LENGTH_SHORT).show();
-                    pref.edit().putBoolean(DATA_FETCHED, true).commit();
+                    try {
+                        pref.edit().putInt(FLAG_DATA_FETCH, 1).apply(); //starting to fetch
+                        Log.d("App","Event Size:"+eventArray.length()+" Bulletin Size:"+bulletinArray.length());
+                        pref.edit().putInt(PREF_BACKUP_EVENT_FETCH_COUNT_LIMIT, eventArray.length()-1).apply();
+                        pref.edit().putInt(PREF_BACKUP_BULLETIN_FETCH_COUNT_LIMIT, bulletinArray.length()-1).apply();
+
+                        JSONArray newEventArray = new JSONArray();
+                        for (int i = eventArray.length()-1; i>=0; i--) {
+                            newEventArray.put(eventArray.get(i));
+                        }
+
+                        JSONArray newBulletinArray = new JSONArray();
+                        for (int i = bulletinArray.length()-1; i>=0; i--) {
+                            newBulletinArray.put(bulletinArray.get(i));
+                        }
+
+                        pref.edit().putString(PREF_BACKUP_ARRAY_EVENT, newEventArray.toString()).apply();
+                        pref.edit().putString(PREF_BACKUP_ARRAY_BULLETIN, newBulletinArray.toString()).apply();
+                        fetchEvents(newEventArray, 0);
+                        fetchBulletins(newBulletinArray, 0);
+
+                    } catch (JSONException e) {
+                        e.printStackTrace();
+                    }
                 }
             });
             no.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                    pref.edit().putBoolean(DATA_FETCHED, true).commit();
+                    pref.edit().putInt(FLAG_DATA_FETCH, 0).commit(); //skipped backup restore
                     alertDialog.dismiss();
                 }
             });
         }
-        else
-            pref.edit().putBoolean(DATA_FETCHED, true).commit();
+        else {
+            pref.edit().putInt(FLAG_DATA_FETCH, 2).commit(); // no backup found!
+            Toasty.normal(getApplicationContext(), "No Backup Event Found!", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private void fetchEvents(final JSONArray array, final int index) throws JSONException{
+        if(index<array.length()) {
+            Log.d("APP", "Index:"+index+" LIMIT:"+pref.getInt(PREF_BACKUP_EVENT_FETCH_COUNT_LIMIT, 0));
+            pref.edit().putInt(PREF_BACKUP_EVENT_FETCH_COUNT, index).apply();
+            final String id = array.getString(index);
+            String url = "https://mycampusdock.herokuapp.com/get-event?";
+            url = url + "event_id=" + id + "&isMobile=true";
+            Log.d("App", "URL:"+ url + " EVENT_ID:"+id);
+            StringRequest stringRequest = new StringRequest(Request.Method.GET, url,
+                    new Response.Listener<String>() {
+                        @Override
+                        public void onResponse(String response) {
+                            Log.d("App", "ResponseFetch:" + response);
+                            try {
+                                Event event = Event.parseFromJSON(new JSONObject(response).getJSONObject("event_data"));
+                                DockDB.getIntsance(getApplicationContext()).getEventDao().insert(event);
+                                BusHolder.getInstnace().post(event);
+                                CustomFirebaseMessagingService.accountReach(getApplicationContext(), event.getId(), "" + REQ_REACH_EVENT);
+                                fetchEvents(array, index + 1);
+                            } catch (JSONException e) {
+                                e.printStackTrace();
+                            }
+                        }
+                    }, new Response.ErrorListener() {
+                @Override
+                public void onErrorResponse(VolleyError error) {
+                    Log.d("App", error.toString());
+                    Toasty.error(getApplicationContext(), "Try Again!", Toast.LENGTH_LONG).show();
+                }
+            });
+            stringRequest.setRetryPolicy(new DefaultRetryPolicy(
+                    10000,
+                    DefaultRetryPolicy.DEFAULT_MAX_RETRIES,
+                    DefaultRetryPolicy.DEFAULT_BACKOFF_MULT));
+            LocalStore.getNetworkqueue(this).add(stringRequest);
+        }
+    }
+
+    private void fetchBulletins(final JSONArray array, final int index) throws JSONException{
+        if(index<array.length()) {
+            pref.edit().putInt(PREF_BACKUP_BULLETIN_FETCH_COUNT, index).apply();
+            final String id = array.getString(index);
+            String url = "https://mycampusdock.herokuapp.com/get-bulletin?";
+            url = url + "bulletin_id=" + id + "&isMobile=true";
+
+            StringRequest stringRequest = new StringRequest(Request.Method.GET, url,
+                    new Response.Listener<String>() {
+                        @Override
+                        public void onResponse(String response) {
+                            Log.d("App", "ResponseFetch:" + response);
+                            try {
+                                Bulletin bulletin = Bulletin.parseFromJSON(new JSONObject(response).getJSONObject("bulletin_data"));
+                                DockDB.getIntsance(getApplicationContext()).getBulletinDao().insert(bulletin);
+                                CustomFirebaseMessagingService.accountReach(getApplicationContext(), bulletin.getId(), "" + REQ_REACH_BULLETIN);
+                                fetchBulletins(array, index + 1);
+                            } catch (JSONException e) {
+                                e.printStackTrace();
+                            }
+                        }
+                    }, new Response.ErrorListener() {
+                @Override
+                public void onErrorResponse(VolleyError error) {
+                    Log.d("App", error.toString());
+                    Toasty.error(getApplicationContext(), "Try Again!", Toast.LENGTH_LONG).show();
+                }
+            });
+            stringRequest.setRetryPolicy(new DefaultRetryPolicy(
+                    10000,
+                    DefaultRetryPolicy.DEFAULT_MAX_RETRIES,
+                    DefaultRetryPolicy.DEFAULT_BACKOFF_MULT));
+            LocalStore.getNetworkqueue(this).add(stringRequest);
+        }
     }
 
     public static void showNotification(int position){
@@ -288,7 +480,7 @@ public class HomeActivity extends AppCompatActivity {
     private void handleStart(){
         if (getIntent().getAction() != null) {
             switch (getIntent().getAction()) {
-                case SHOW_NEW_EVENT :
+                case FLAG_SHOW_NEW_EVENT :
                     try {
                         JSONObject obj = new JSONObject(getIntent().getExtras().getString(TYPE_EVENT));
                         Event event = Event.parseFromJSON(obj);
@@ -302,8 +494,9 @@ public class HomeActivity extends AppCompatActivity {
                         e.printStackTrace();
                     }
                     break;
-                case SHOW_NEW_BULLETIN:
+                case FLAG_SHOW_NEW_BULLETIN:
                     try {
+                        setHomeTemporary();
                         JSONObject obj = new JSONObject(getIntent().getExtras().getString(TYPE_BULLETIN));
                         Bulletin bulletin = Bulletin.parseFromJSON(obj);
                         BulletinFragment fragment = BulletinFragment.newInstance();
@@ -320,29 +513,39 @@ public class HomeActivity extends AppCompatActivity {
         }
     }
 
+    private void setHomeTemporary(){
+        currentFragment = EventFragment.newInstance();
+        replaceFragment();
+    }
+
     @Override
     protected void onResume() {
         super.onResume();
-        if(getIntent()!=null)
+        if(getIntent()!=null) {
             handleStart();
+        }
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
     }
 
     @Override
     protected void onStart() {
         super.onStart();
-        Log.d("App","Action:"+getIntent().getAction());
         handleStart();
     }
 
     private BroadcastReceiver receiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
-            switch (intent.getStringExtra(Config.NEW_UPDATE)){
-                case Config.SHOW_NEW_EVENT:
+            switch (intent.getStringExtra(FLAG_NEW_UPDATE)){
+                case FLAG_SHOW_NEW_EVENT:
                     showNotification(0);
                     EventFragment.adapterDataUpdated();
                     break;
-                case Config.SHOW_NEW_BULLETIN:
+                case FLAG_SHOW_NEW_BULLETIN:
                     showNotification(1);
                     break;
             }

@@ -7,7 +7,10 @@ import android.util.Log;
 
 import com.google.firebase.iid.FirebaseInstanceId;
 import com.google.firebase.iid.FirebaseInstanceIdService;
-import com.swalla.campusdock.Utils.Config;
+
+import static com.swalla.campusdock.Utils.Config.Prefs.PREF_NAME;
+import static com.swalla.campusdock.Utils.Config.Flags.*;
+import static com.swalla.campusdock.Utils.Config.Prefs.PREF_REG_ID_KEY;
 
 /**
  * Created by ogil on 14/01/18.
@@ -20,15 +23,9 @@ public class CustomFirebaseInstanceService extends FirebaseInstanceIdService {
     public void onTokenRefresh() {
         super.onTokenRefresh();
         String refreshedToken = FirebaseInstanceId.getInstance().getToken();
-
-        // Saving reg id to shared preferences
         storeRegIdInPref(refreshedToken);
-
-        // sending reg id to your server
         sendRegistrationToServer(refreshedToken);
-
-        // Notify UI that registration has completed!
-        Intent registrationComplete = new Intent(Config.REG_COMPLETE);
+        Intent registrationComplete = new Intent(FLAG_REG_COMPLETE);
         registrationComplete.putExtra("token", refreshedToken);
         LocalBroadcastManager.getInstance(this).sendBroadcast(registrationComplete);
     }
@@ -39,9 +36,9 @@ public class CustomFirebaseInstanceService extends FirebaseInstanceIdService {
     }
 
     private void storeRegIdInPref(String token) {
-        SharedPreferences pref = getApplicationContext().getSharedPreferences(Config.PREF_NAME, MODE_PRIVATE);
+        SharedPreferences pref = getApplicationContext().getSharedPreferences(PREF_NAME, MODE_PRIVATE);
         SharedPreferences.Editor editor = pref.edit();
-        editor.putString(Config.PREF_REG_ID_KEY, token);
+        editor.putString(PREF_REG_ID_KEY, token);
         editor.apply();
     }
 }

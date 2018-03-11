@@ -2,8 +2,11 @@ package com.swalla.campusdock.Activities;
 
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.graphics.Bitmap;
 import android.os.Build;
 import android.os.Environment;
+import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import android.support.design.widget.Snackbar;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
@@ -25,30 +28,35 @@ import com.android.volley.Response;
 import com.android.volley.VolleyError;
 import com.android.volley.toolbox.StringRequest;
 import com.bumptech.glide.Glide;
+import com.bumptech.glide.request.target.SimpleTarget;
+import com.bumptech.glide.request.transition.Transition;
 import com.google.firebase.messaging.FirebaseMessaging;
 import com.swalla.campusdock.Classes.Event;
 import com.swalla.campusdock.Databases.DockDB;
 import com.swalla.campusdock.Fragments.EventFragment;
 import com.swalla.campusdock.R;
-import com.swalla.campusdock.Utils.Config;
 import com.swalla.campusdock.Utils.LocalStore;
-import com.swalla.campusdock.Utils.NotiUtil;
 import com.swalla.campusdock.Utils.Utils;
 
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
 import es.dmoral.toasty.Toasty;
 
-import static com.swalla.campusdock.Utils.Config.PREF_NAME;
-import static com.swalla.campusdock.Utils.Config.PREF_USER_API_KEY;
-import static com.swalla.campusdock.Utils.Config.PREF_USER_CLASS;
-import static com.swalla.campusdock.Utils.Config.PREF_USER_ROLL;
+import static com.swalla.campusdock.Utils.Config.Prefs.PREF_NAME;
+import static com.swalla.campusdock.Utils.Config.Prefs.PREF_USER_API_KEY;
+import static com.swalla.campusdock.Utils.Config.Prefs.PREF_USER_CLASS;
+import static com.swalla.campusdock.Utils.Config.Prefs.PREF_USER_ROLL;
+import static com.swalla.campusdock.Utils.Config.Requests.REQ_CHECK_EVENT_SUBSCRIPTION;
+import static com.swalla.campusdock.Utils.Config.Requests.REQ_ENROLL;
+import static com.swalla.campusdock.Utils.Config.Requests.REQ_WITHDRAW;
+import static com.swalla.campusdock.Utils.Config.Urls.URL_BASE_FILES;
 
 public class EventActivity extends AppCompatActivity  {
     private ImageView cardImage;
@@ -63,7 +71,6 @@ public class EventActivity extends AppCompatActivity  {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setTheme(R.style.HolyBlack);
         setContentView(R.layout.activity_event);
         event = (Event) getIntent().getSerializableExtra("event");
         pref = getSharedPreferences(PREF_NAME, MODE_PRIVATE);
@@ -76,8 +83,8 @@ public class EventActivity extends AppCompatActivity  {
         enroll.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-            String text = "Do you want to get enrolled in this event?";
-            String text2 = "Already enrolled! Wants to withdraw yourself?";
+            String text = "Do you really want to get enrolled in this event ?";
+            String text2 = "Already enrolled!\nWant to withdraw your enrollment ?";
             String action = "Enroll";
             String action2 = "WithDraw";
             snackbar = Snackbar.make(view, event.isEnrolled()?text2:text ,5000);
@@ -119,7 +126,31 @@ public class EventActivity extends AppCompatActivity  {
                 Glide.with(this).load(f).into(cardImage);
             else {
                 cardImage.setImageResource(R.drawable.test_poster);
-                NotiUtil.getBitmapFromURL(event.getUrl());
+                try {
+                    Glide.with(this).asBitmap().load(URL_BASE_FILES + event.getUrl()).into(new SimpleTarget<Bitmap>() {
+                        @Override
+                        public void onResourceReady(@NonNull Bitmap resource, @Nullable Transition<? super Bitmap> transition) {
+                            cardImage.setImageBitmap(resource);
+                            File folder = new File(Environment.getExternalStorageDirectory() + File.separator + "CampusDock");
+                            if(!folder.exists()){
+                                folder.mkdirs();
+                            }
+                            folder = new File(folder, event.getUrl());
+                            if(folder.exists()){
+                                folder.delete();
+                            }
+                            try {
+                                FileOutputStream fos = new FileOutputStream(folder);
+                                resource.compress(Bitmap.CompressFormat.JPEG, 40, fos);
+                                fos.close();
+                            } catch (Exception e) {
+                                e.printStackTrace();
+                            }
+                        }
+                    });
+                }catch (Exception e){
+                    cardImage.setImageResource(R.drawable.test_poster);
+                }
             }
         }
         else {
@@ -129,7 +160,7 @@ public class EventActivity extends AppCompatActivity  {
             @Override
             public void onClick(View v) {
                 Intent preview = new Intent(getApplicationContext(), PreviewImage.class);
-                LocalStore.putObject("previewImage", cardImage.getDrawable());
+                LocalStore.putObject("previewImage", event.getUrl());
                 startActivity(preview);
             }
         });
@@ -207,7 +238,7 @@ public class EventActivity extends AppCompatActivity  {
                 params.put("roll", pref.getString(PREF_USER_ROLL, ""));
                 params.put("api", pref.getString(PREF_USER_API_KEY, ""));
                 params.put("class", pref.getString(PREF_USER_CLASS, ""));
-                params.put("type", ""+Config.REQ_CHECK_EVENT_SUSBCRIPTION);
+                params.put("type", "" + REQ_CHECK_EVENT_SUBSCRIPTION);
                 params.put("event_id", event_id);
                 return params;
             }
@@ -268,7 +299,7 @@ public class EventActivity extends AppCompatActivity  {
                 params.put("roll", pref.getString(PREF_USER_ROLL, ""));
                 params.put("api", pref.getString(PREF_USER_API_KEY, ""));
                 params.put("event_id", eventId);
-                params.put("flag", event.isEnrolled() ? ""+ Config.REQ_WITHDRAW : ""+Config.REQ_ENROLL);
+                params.put("flag", event.isEnrolled() ? "" + REQ_WITHDRAW : "" + REQ_ENROLL);
                 return params;
             }
         };

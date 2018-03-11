@@ -3,12 +3,9 @@ package com.swalla.campusdock.Services;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.graphics.Bitmap;
 import android.support.v4.content.LocalBroadcastManager;
 import android.text.TextUtils;
 import android.util.Log;
-import android.view.View;
-import android.widget.Toast;
 
 import com.android.volley.AuthFailureError;
 import com.android.volley.DefaultRetryPolicy;
@@ -21,8 +18,6 @@ import com.google.firebase.messaging.RemoteMessage;
 import com.swalla.campusdock.Activities.HomeActivity;
 import com.swalla.campusdock.Classes.Bulletin;
 import com.swalla.campusdock.Classes.Event;
-import com.swalla.campusdock.Fragments.EventFragment;
-import com.swalla.campusdock.Utils.Config;
 import com.swalla.campusdock.Databases.DockDB;
 import com.swalla.campusdock.Utils.LocalStore;
 import com.swalla.campusdock.Utils.NotiUtil;
@@ -33,19 +28,19 @@ import org.json.JSONObject;
 import java.util.HashMap;
 import java.util.Map;
 
-import es.dmoral.toasty.Toasty;
-
-import static com.swalla.campusdock.Utils.Config.PREF_NAME;
-import static com.swalla.campusdock.Utils.Config.PREF_USER_API_KEY;
-import static com.swalla.campusdock.Utils.Config.PREF_USER_IS_LOGGED_IN;
-import static com.swalla.campusdock.Utils.Config.PREF_USER_NAME;
-import static com.swalla.campusdock.Utils.Config.PREF_USER_PHONE;
-import static com.swalla.campusdock.Utils.Config.PREF_USER_ROLL;
-import static com.swalla.campusdock.Utils.Config.PREF_USER_SUBSCRIPTIONS;
-import static com.swalla.campusdock.Utils.Config.TYPE_BULLETIN;
-import static com.swalla.campusdock.Utils.Config.TYPE_EVENT;
-import static com.swalla.campusdock.Utils.Config.TYPE_EVENT_UPDATE;
-import static com.swalla.campusdock.Utils.Config.TYPE_VERFIFICATION;
+import static com.swalla.campusdock.Utils.Config.Flags.FLAG_NEW_UPDATE;
+import static com.swalla.campusdock.Utils.Config.Flags.FLAG_SHOW_NEW_BULLETIN;
+import static com.swalla.campusdock.Utils.Config.Flags.FLAG_SHOW_NEW_EVENT;
+import static com.swalla.campusdock.Utils.Config.Prefs.PREF_NAME;
+import static com.swalla.campusdock.Utils.Config.Prefs.PREF_USER_API_KEY;
+import static com.swalla.campusdock.Utils.Config.Prefs.PREF_USER_IS_LOGGED_IN;
+import static com.swalla.campusdock.Utils.Config.Prefs.PREF_USER_ROLL;
+import static com.swalla.campusdock.Utils.Config.Requests.REQ_REACH_BULLETIN;
+import static com.swalla.campusdock.Utils.Config.Requests.REQ_REACH_EVENT;
+import static com.swalla.campusdock.Utils.Config.Types.TYPE_BULLETIN;
+import static com.swalla.campusdock.Utils.Config.Types.TYPE_EVENT;
+import static com.swalla.campusdock.Utils.Config.Types.TYPE_EVENT_UPDATE;
+import static com.swalla.campusdock.Utils.Config.Types.TYPE_VERIFICATION;
 
 
 /**
@@ -62,7 +57,7 @@ public class CustomFirebaseMessagingService extends FirebaseMessagingService {
     @Override
     public void onMessageReceived(RemoteMessage remoteMessage) {
         Log.e(TAG, "From: " + remoteMessage.getFrom());
-        pref = getApplicationContext().getSharedPreferences(Config.PREF_NAME, MODE_PRIVATE);
+        pref = getApplicationContext().getSharedPreferences(PREF_NAME, MODE_PRIVATE);
         if (remoteMessage == null) return;
 
         if (remoteMessage.getData().size() > 0) {
@@ -97,17 +92,17 @@ public class CustomFirebaseMessagingService extends FirebaseMessagingService {
                 Log.e(TAG, "timestamp: " + timestamp);
 
                 if(pref.getBoolean(PREF_USER_IS_LOGGED_IN, false)) {
-                    accountReach(payload.getString("event_id"), ""+Config.REQ_REACH_EVENT);
+                    accountReach(this, payload.getString("event_id"), ""+REQ_REACH_EVENT);
                     DockDB.getIntsance(getApplicationContext()).getEventDao().insert(Event.parseFromJSON(payload));
                     if (!NotiUtil.isAppIsInBackground(getApplicationContext())) {
                         NotiUtil notificationUtils = new NotiUtil(getApplicationContext());
                         notificationUtils.getBitmapFromURL(imageUrl);
-                        Intent notify = new Intent(Config.NEW_UPDATE);
-                        notify.putExtra(Config.NEW_UPDATE, Config.SHOW_NEW_EVENT);
+                        Intent notify = new Intent(FLAG_NEW_UPDATE);
+                        notify.putExtra(FLAG_NEW_UPDATE, FLAG_SHOW_NEW_EVENT);
                         LocalBroadcastManager.getInstance(getApplicationContext()).sendBroadcast(notify);
                     } else {
                         Intent resultIntent = new Intent(getApplicationContext(), HomeActivity.class);
-                        resultIntent.setAction(Config.SHOW_NEW_EVENT);
+                        resultIntent.setAction(FLAG_SHOW_NEW_EVENT);
                         resultIntent.putExtra(TYPE_EVENT, payload.toString());
                         resultIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
 
@@ -124,9 +119,11 @@ public class CustomFirebaseMessagingService extends FirebaseMessagingService {
                 try {
                     Log.d("App", "ID:"+updatedData.getString("event_id"));
                     Event e = DockDB.getIntsance(this).getEventDao().getEvent(updatedData.getString("event_id"));
-                    Log.d("app","Event:"+e.getEventName()+e.getId());
-                    e = e.updateEvent(updatedData);
-                    DockDB.getIntsance(this).getEventDao().update(e);
+                    if(e != null) {
+                        DockDB.getIntsance(this).getEventDao().delete(e);
+                        e = e.updateEvent(updatedData);
+                        DockDB.getIntsance(this).getEventDao().insert(e);
+                    }
                 } catch (JSONException e){
                     e.printStackTrace();
                 }
@@ -142,29 +139,29 @@ public class CustomFirebaseMessagingService extends FirebaseMessagingService {
                 Log.e(TAG, "timestamp: " + noti_bullet_timestamp);
 
                 if(pref.getBoolean(PREF_USER_IS_LOGGED_IN, false)) {
-                    accountReach(payload.getString("bulletin_id"), ""+Config.REQ_REACH_BULLETIN);
+                    accountReach(this, payload.getString("bulletin_id"), ""+REQ_REACH_BULLETIN);
                     DockDB.getIntsance(getApplicationContext()).getBulletinDao().insert(Bulletin.parseFromJSON(payload));
                     if (!NotiUtil.isAppIsInBackground(getApplicationContext())) {
-                        Intent notify = new Intent(Config.NEW_UPDATE);
-                        notify.putExtra(Config.NEW_UPDATE, Config.SHOW_NEW_BULLETIN);
+                        Intent notify = new Intent(FLAG_NEW_UPDATE);
+                        notify.putExtra(FLAG_NEW_UPDATE, FLAG_SHOW_NEW_BULLETIN);
                         LocalBroadcastManager.getInstance(getApplicationContext()).sendBroadcast(notify);
                     } else {
                         Intent resultIntent = new Intent(getApplicationContext(), HomeActivity.class);
-                        resultIntent.setAction(Config.SHOW_NEW_BULLETIN);
+                        resultIntent.setAction(FLAG_SHOW_NEW_BULLETIN);
                         resultIntent.putExtra(TYPE_BULLETIN, payload.toString());
                         resultIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
                         showNotificationMessage(getApplicationContext(), noti_bullet_title, noti_bullet_message, noti_bullet_timestamp, resultIntent);
                     }
                 }
                 break;
-            case TYPE_VERFIFICATION :
-                LocalStore.putObject(TYPE_VERFIFICATION, payload.getString("pin"));
+            case TYPE_VERIFICATION :
+                LocalStore.putObject(TYPE_VERIFICATION, payload.getString("pin"));
                 break;
         }
     }
 
-    private void accountReach(final String eventId,final String reach){
-        pref = getSharedPreferences(PREF_NAME, MODE_PRIVATE);
+    public static void accountReach(Context context, final String eventId, final String reach){
+        final SharedPreferences pref = context.getSharedPreferences(PREF_NAME, MODE_PRIVATE);
         String url = "https://mycampusdock.herokuapp.com/enroll";
         StringRequest stringRequest = new StringRequest(Request.Method.POST, url,
                 new Response.Listener<String>() {
@@ -192,7 +189,7 @@ public class CustomFirebaseMessagingService extends FirebaseMessagingService {
                 10000,
                 DefaultRetryPolicy.DEFAULT_MAX_RETRIES,
                 DefaultRetryPolicy.DEFAULT_BACKOFF_MULT));
-        LocalStore.getNetworkqueue(this).add(stringRequest);
+        LocalStore.getNetworkqueue(context).add(stringRequest);
     }
 
     /**
